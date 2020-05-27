@@ -3,21 +3,17 @@ import styled from 'styled-components/macro'
 
 import Piece from './Piece.js'
 import Square from './Square.js'
-import initialSetup from './initialSetup.js'
 
-function isBlackSquare(i) {
-  return (i % 2) ^ (i / 8 % 2)
-}
-const Board = ({ className, pieces = initialSetup}) => {
-  const squares = Array(64).fill(null)
+const squares = Array(64).fill(null).map((_square, i) => ({
+  isBlack: (i % 2) ^ (i / 8 % 2)
+}))
 
+const Board = ({ className, pieces = {}, movePiece }) => {
   return (
     <section className={className}>
-      {squares.map((square, i) => 
-        <Square color={isBlackSquare(i) ? "#bbb" : "white"} key={i}>
-          {pieces[i]
-            ? <Piece {...pieces[i]} rotated={false} />
-            : null}
+      {squares.map((square, i) =>
+        <Square {...square} key={i}>
+          {pieces[i] ? <Piece {...pieces[i]} /> : null}
         </Square>
       )}
     </section>

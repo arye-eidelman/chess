@@ -1,9 +1,11 @@
 import React from 'react'
 import styled from 'styled-components/macro'
 
-const Square = ({ className, children }) => {
+const Square = ({ className, children, isBlack }) => {
   return (
-    <div className={className}>
+    <div className={className} style={{
+      backgroundColor: isBlack ? "#bbb" : "white"
+    }}>
       {children}
     </div>
   )
@@ -15,7 +17,6 @@ const StyledSquare = styled(Square)`
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: ${({ color }) => color || "white"};
   border: 0.51px solid black;
 `
 
