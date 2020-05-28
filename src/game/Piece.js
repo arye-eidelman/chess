@@ -1,6 +1,7 @@
 import React from 'react'
 import styled from 'styled-components/macro'
 import _ from 'lodash'
+import { useDrag } from 'react-dnd'
 
 import images from './images/index.js'
 
@@ -14,7 +15,30 @@ const Image = styled.img`
 `
 
 const Piece = (props) => {
-  return <Image src={imageSource(props)} alt={`${props.color} ${props.name}`} />
+  const { name, color, pickUp, putDown } = props
+  const [{ isDragging }, drag] = useDrag({
+    item: { type: "knight" },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging()
+    }),
+    begin: pickUp,
+    end: (_item, monitor) => monitor.didDrop() || putDown(),
+  })
+
+  return (
+    <Image
+      src={imageSource(props)}
+      alt={`${color} ${name}`}
+
+      ref={drag}
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+        borderWidth: "3px",
+        borderColor: isDragging ? "red" : "green",
+        cursor: 'move',
+      }}
+    />
+  )
 }
 
 export default Piece

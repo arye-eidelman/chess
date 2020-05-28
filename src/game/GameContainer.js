@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { DndProvider } from 'react-dnd'
+import { HTML5Backend } from 'react-dnd-html5-backend'
 
 import Game from './Game.js'
 import initialSetup from './initialSetup.js'
@@ -22,16 +24,16 @@ const GameContainer = () => {
     return pieces.find(position => position.x === x && position.y === y)
   }
 
-  const selectSquare = (position) => {
+  const pickUpPiece = (position) => {
+    if (pieceAtPosition(position)) {
+      setSelectedSquare(position)
+    }
+  }
+
+  const putDownPiece = (position) => {
     if (selectedSquare) {
-      if (!isSamePosition(selectedSquare, position)) {
-        movePiece(selectedSquare, position)
-      }
+      movePiece(selectedSquare, position)
       setSelectedSquare(null)
-    } else {
-      if (pieceAtPosition(position)) {
-        setSelectedSquare(position)
-      }
     }
   }
 
@@ -58,15 +60,18 @@ const GameContainer = () => {
   }, [pieces])
 
   return (
-    <Game
-      squares={squares}
-      pieces={pieces}
-      selectSquare={selectSquare}
-      selectedSquare={selectedSquare}
-      pieceAtPosition={pieceAtPosition}
-      isSamePosition={isSamePosition}
-      gameOver={gameOver}
-    />
+    <DndProvider backend={HTML5Backend}>
+      <Game
+        squares={squares}
+        selectedSquare={selectedSquare}
+        pieceAtPosition={pieceAtPosition}
+        isSamePosition={isSamePosition}
+        gameOver={gameOver}
+        justXY={justXY}
+        pickUpPiece={pickUpPiece}
+        putDownPiece={putDownPiece}
+      />
+    </DndProvider>
   )
 }
 
