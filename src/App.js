@@ -1,12 +1,12 @@
 import React from 'react'
 import './App.css'
-import Game from './game/Game.js'
+import GameContainer from './game/GameContainer.js'
 import Footer from './Footer.js'
 
 function App() {
   return (
     <div className="App">
-      <Game />
+      <GameContainer />
       <Footer />
     </div>
   )

@@ -4,18 +4,17 @@ import _ from 'lodash'
 
 import images from './images/index.js'
 
-const Piece = ({ className, name, color, rotated = false }) => {
-  const imageKey = _.camelCase(`${name}-${color}-${rotated ? "rotated" : ""}`)
-  const image = images[imageKey]
-  return (
-    <img className={className} src={image} alt={`${color} ${name}`} />
-  )
+const imageSource = ({ name, color, rotated = false }) => {
+  return images[_.camelCase(`${name}-${color}-${rotated ? "rotated" : ""}`)]
 }
 
-const styledPiece = styled(Piece)`
-  font-size: 8vw;
-  text-align: center;
+const Image = styled.img`
   width: 100%;
   height: 100%;
 `
-export default styledPiece
+
+const Piece = (props) => {
+  return <Image src={imageSource(props)} alt={`${props.color} ${props.name}`} />
+}
+
+export default Piece
