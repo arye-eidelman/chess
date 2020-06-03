@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { DndProvider } from 'react-dnd'
-import { HTML5Backend } from 'react-dnd-html5-backend'
+import ResponsiveDndProvider from './ResponsiveDndProvider.js'
 import Chess from 'chess.js'
 
 import Game from './Game.js'
@@ -40,7 +39,7 @@ const GameContainer = () => {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <ResponsiveDndProvider>
       <Game
         chess={chess}
         xyToPosition={xyToPosition}
@@ -49,7 +48,7 @@ const GameContainer = () => {
         pickUpPiece={pickUpPiece}
         putDownPiece={putDownPiece}
       />
-    </DndProvider>
+    </ResponsiveDndProvider>
   )
 }
 
