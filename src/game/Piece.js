@@ -17,12 +17,13 @@ const Image = styled.img`
 const Piece = (props) => {
   const { type, color, pickUp, putDown } = props
   const [{ isDragging }, drag] = useDrag({
-    item: { type: "knight" },
+    item: { type: "chessPiece" },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging()
     }),
     begin: pickUp,
     end: (_item, monitor) => monitor.didDrop() || putDown(),
+    canDrag: props.canPickUp,
   })
 
   return (
@@ -32,7 +33,7 @@ const Piece = (props) => {
 
       ref={drag}
       style={{
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.3 : 1,
         borderWidth: "3px",
         borderColor: isDragging ? "red" : "green",
         cursor: 'move',

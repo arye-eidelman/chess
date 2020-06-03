@@ -19,9 +19,9 @@ const GameContainer = () => {
     }
   }
 
-  const canPutDown = (position) => {
-    return chess.moves({ square: selectedSquare }).map(p => p.slice(-2)).includes(position)
-  }
+  const legalMoves = selectedSquare ? chess.moves({ square: selectedSquare }).map(p => p.slice(-2)) : []
+
+  const canPutDown = (position) => legalMoves.includes(position) || position === selectedSquare
 
   const putDownPiece = (position) => {
     if (canPutDown(position)) {
@@ -31,7 +31,7 @@ const GameContainer = () => {
   }
 
   const selectSquare = (position) => {
-    if (selectedSquare && canPutDown(position)) {
+    if (canPutDown(position)) {
       putDownPiece(position)
     } else {
       pickUpPiece(position)
@@ -47,6 +47,9 @@ const GameContainer = () => {
         selectSquare={selectSquare}
         pickUpPiece={pickUpPiece}
         putDownPiece={putDownPiece}
+        legalMoves={legalMoves}
+        canPickUp={canPickUp}
+        canPutDown={canPutDown}
       />
     </ResponsiveDndProvider>
   )

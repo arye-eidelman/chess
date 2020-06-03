@@ -5,7 +5,7 @@ import Square from './Square.js'
 
 const BoardSquare = (props) => {
   const [{ isOver }, drop] = useDrop({
-    accept: "knight",
+    accept: "chessPiece",
     drop: () => props.putDown(),
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
