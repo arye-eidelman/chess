@@ -5,8 +5,8 @@ import { useDrag } from 'react-dnd'
 
 import images from './images/index.js'
 
-const imageSource = ({ name, color, rotated = false }) => {
-  return images[_.camelCase(`${name}-${color}-${rotated ? "rotated" : ""}`)]
+const imageSource = ({ type, color, rotated = false }) => {
+  return images[_.camelCase(`${type}-${color}-${rotated ? "rotated" : ""}`)]
 }
 
 const Image = styled.img`
@@ -15,7 +15,7 @@ const Image = styled.img`
 `
 
 const Piece = (props) => {
-  const { name, color, pickUp, putDown } = props
+  const { type, color, pickUp, putDown } = props
   const [{ isDragging }, drag] = useDrag({
     item: { type: "knight" },
     collect: (monitor) => ({
@@ -28,7 +28,7 @@ const Piece = (props) => {
   return (
     <Image
       src={imageSource(props)}
-      alt={`${color} ${name}`}
+      alt={`${color} ${type}`}
 
       ref={drag}
       style={{

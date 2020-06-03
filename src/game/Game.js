@@ -4,33 +4,47 @@ import Board from './Board.js'
 import BoardSquare from './BoardSquare.js'
 import Piece from './Piece.js'
 
-const Game = ({ squares, pickUpPiece, putDownPiece, selectedSquare, pieceAtPosition, isSamePosition, justXY }) => (
-  <Board>
-    {squares.map((square, i) => {
-      const position = justXY(square)
-      const putDown = () => putDownPiece(position)
-      const pickUp = () => pickUpPiece(position)
-      return (
-        <BoardSquare
-          isBlack={square.isBlack}
-          isSelected={selectedSquare && isSamePosition(selectedSquare, position)}
-          key={i}
-          putDown={putDown}
-          pickUp={pickUp}
-          onClick={() => selectedSquare ? putDown() : pickUp()}
-        >
-          {pieceAtPosition(position) ? (
-            <Piece
-              {...pieceAtPosition(position)}
+import { pieceKeys, colorKeys } from './constants.js'
+
+const Game = ({ chess, xyToPosition, pickUpPiece, putDownPiece, selectSquare, selectedSquare }) => {
+  const board = chess.board()
+  const legalMoves = selectedSquare ? chess.moves({ square: selectedSquare }).map(p => p.slice(-2)) : []
+
+  return (
+    <Board>
+      {board.map((row, y) => {
+        return row.map((piece, x) => {
+          const position = xyToPosition({ x, y })
+          const putDown = () => putDownPiece(position)
+          const pickUp = () => pickUpPiece(position)
+          const select = () => selectSquare(position)
+
+          return (
+            <BoardSquare
+              isDark={chess.square_color(position) === "dark"}
+              isSelected={selectedSquare && selectedSquare === position}
+              isLegalMove={selectedSquare && legalMoves.includes(position)}
+              key={position}
               putDown={putDown}
               pickUp={pickUp}
-            />
-          ) : null}
-        </BoardSquare>
-      )
-    }
-    )}
-  </Board>
-)
+              onClick={select}
+            >
+              {piece ? (
+                <Piece
+                  type={pieceKeys[piece.type]}
+                  color={colorKeys[piece.color]}
+                  x={x}
+                  y={y}
+                  putDown={putDown}
+                  pickUp={pickUp}
+                />
+              ) : null}
+            </BoardSquare>
+          )
+        })
+      })}
+    </Board>
+  )
+}
 
 export default Game

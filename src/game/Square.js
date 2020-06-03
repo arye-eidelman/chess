@@ -8,11 +8,11 @@ const Square = styled.div`
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: ${({ isSelected, isUnderDrag, isBlack }) =>
-    isSelected ? "lightgreen"
-      : isUnderDrag ? "pink"
-        : isBlack ? "#bbb"
-          : "white"
+  background: ${({ isSelected, isUnderDrag, isLegalMove, isDark }) =>
+    isSelected ? (isDark ? "#f8f" : "#fcf")
+      : isUnderDrag ? (isDark ? "#8ff" : "#cff")
+        : isLegalMove ? (isDark ? "#ff8" : "#ffc")
+          : (isDark ? "#ccc" : "fff")
   };
 
 `
