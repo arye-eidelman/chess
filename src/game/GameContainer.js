@@ -19,7 +19,7 @@ const GameContainer = () => {
     }
   }
 
-  const legalMoves = selectedSquare ? chess.moves({ square: selectedSquare }).map(p => p.slice(-2)) : []
+  const legalMoves = chess.moves({ square: selectedSquare || "never-mind", verbose: true }).map(m => m.to)
 
   const canPutDown = (position) => legalMoves.includes(position) || position === selectedSquare
 
