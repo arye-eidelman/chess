@@ -8,11 +8,11 @@ const Square = styled.div`
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: ${({ isSelected, isUnderDrag, canPutDown, isDark }) =>
-    isSelected ? (isDark ? "#f8f" : "#fcf")
+  background: ${({ isFocused, isUnderDrag, canPutDown, isDark }) =>
+    isFocused ? (isDark ? "#f8f" : "#fcf")
       : isUnderDrag ? (isDark ? "#8ff" : "#cff")
         : canPutDown ? (isDark ? "#ff8" : "#ffc")
-          : (isDark ? "#ccc" : "fff")
+          : (isDark ? "#ccc" : "#fff")
   };
 
 `
