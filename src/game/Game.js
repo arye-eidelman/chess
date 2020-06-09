@@ -4,6 +4,7 @@ import Board from './Board.js'
 import BoardSquare from './BoardSquare.js'
 import MovablePiece from './MovablePiece.js'
 import PromotionPicker from './PromotionPicker.js'
+import Layered from '../utils/Layered.js'
 
 import { pieceKeys, colorKeys } from './constants.js'
 
@@ -12,9 +13,9 @@ const Game = ({
   canPickUp, pickUpPiece,
   canPutDown, putDownPiece,
   selectedSquare, selectSquare,
-  promotionHold, selectPromotion
+  promotionHold, selectPromotion, cancelPromotion
 }) => (
-    <div>
+    <Layered align={{ vertical: "center", horizontal: "center" }}>
       <Board>
         {chess.board().map((row, y) => {
           return row.map((piece, x) => {
@@ -57,8 +58,8 @@ const Game = ({
         })}
       </Board>
 
-      {promotionHold ? <PromotionPicker pick={selectPromotion} /> : null}
-    </div>
+      {promotionHold ? <PromotionPicker pick={selectPromotion} cancel={cancelPromotion} color={colorKeys[chess.turn()]} /> : null}
+    </Layered>
   )
 
 export default Game

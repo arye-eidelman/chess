@@ -54,11 +54,11 @@ const GameContainer = () => {
   }
 
   const selectPromotion = (piece) => {
-
     chess.move({ ...promotionHold, promotion: _.invert(pieceKeys)[piece] })
     setPromotionHold(null)
-
   }
+
+  const cancelPromotion = () => setPromotionHold(null)
 
   return (
     <ResponsiveDndProvider>
@@ -73,6 +73,7 @@ const GameContainer = () => {
         selectSquare={selectSquare}
         promotionHold={promotionHold}
         selectPromotion={selectPromotion}
+        cancelPromotion={cancelPromotion}
       />
     </ResponsiveDndProvider>
   )

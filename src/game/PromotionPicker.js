@@ -1,15 +1,42 @@
 import React from 'react'
-// import Piece from './Piece.js'
+import styled from 'styled-components/macro'
+import Piece from './Piece.js'
 
-const PromotionPicker = ({ pick }) => {
+const Backdrop = styled.div`
+  background-color: white;
+  margin: 20px;
+  padding: 20px;
+  box-shadow: 16px 13px 72px 3px rgba(0,0,0,0.75);
+`
+
+const Button = styled.button`
+  margin: 10px;
+  padding: 10px;
+  background-color: #ccc;
+`
+const Title = styled.h3`
+  text-align: center;
+`
+const CancelButton = styled(Button)`
+  display: block;
+  text-align: center;
+  margin-right: auto;
+  margin-left: auto;
+  width: 248px;
+`
+
+const PromotionPicker = ({ pick, cancel, color }) => {
   return (
-    <div>
-      <p>Choose your piece</p>
-      <button onClick={() => pick("queen")}>Queen</button>
-      <button onClick={() => pick("rook")}>Rook</button>
-      <button onClick={() => pick("bishop")}>Bishop</button>
-      <button onClick={() => pick("knight")}>Knight</button>
-    </div>
+    <Backdrop>
+      <Title>Choose your piece</Title>
+      <Button onClick={() => pick("queen")}><Piece type="queen" color={color}></Piece></Button>
+      <Button onClick={() => pick("rook")}><Piece type="rook" color={color}></Piece></Button>
+      <Button onClick={() => pick("bishop")}><Piece type="bishop" color={color}></Piece></Button>
+      <Button onClick={() => pick("knight")}><Piece type="knight" color={color}></Piece></Button>
+      <br />
+
+      <CancelButton onClick={cancel} >Cancel</CancelButton>
+    </Backdrop>
   );
 }
 
