@@ -2,7 +2,7 @@ import React from 'react'
 
 import Board from './Board.js'
 import BoardSquare from './BoardSquare.js'
-import Piece from './Piece.js'
+import MovablePiece from './MovablePiece.js'
 import PromotionPicker from './PromotionPicker.js'
 
 import { pieceKeys, colorKeys } from './constants.js'
@@ -41,7 +41,7 @@ const Game = ({
                 onClick={select}
               >
                 {renderPiece ? (
-                  <Piece
+                  <MovablePiece
                     type={pieceKeys[renderPiece.type]}
                     color={colorKeys[renderPiece.color]}
                     canPickUp={canPickUp(position)}
