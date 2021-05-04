@@ -1,6 +1,6 @@
 # Chess
 
-[offlinechess.app](https://offlinechess.app/)
+[offlinechess.com](https://offlinechess.com/)
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/bc1456cd-0a98-435a-9df2-241c4d16f984/deploy-status)](https://app.netlify.com/sites/offlinechess/deploys)
 
