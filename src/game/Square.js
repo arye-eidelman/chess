@@ -1,20 +1,17 @@
-import styled from 'styled-components/macro'
+import { forwardRef } from 'react'
 
-const Square = styled.div`
-  box-sizing: border-box;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: ${({ isFocused, isUnderDrag, canPutDown, isDark }) =>
-    isFocused ? (isDark ? "#f8f" : "#fcf")
-      : isUnderDrag ? (isDark ? "#8ff" : "#cff")
-        : canPutDown ? (isDark ? "#ff8" : "#ffc")
-          : (isDark ? "#ccc" : "#fff")
-  };
-
-`
+const Square = forwardRef((props, ref) => {
+  const { isFocused, isUnderDrag, canPutDown, isDark } = props
+  return (
+    <div ref={ref} className={"inline-flex justify-center items-center w-full h-full overflow-hidden " + (
+      isFocused ? (isDark ? "bg-[#f8f]" : "bg-[#fcf]")
+        : isUnderDrag ? (isDark ? "bg-[#8ff]" : "bg-[#cff]")
+          : canPutDown ? (isDark ? "bg-[#ff8]" : "bg-[#ffc]")
+            : (isDark ? "bg-[#ccc]" : "bg-[#fff]")
+    )}>
+      {props.children}
+    </div>
+  )
+})
 
 export default Square
