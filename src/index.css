@@ -6,19 +6,18 @@
 
 /* for links in middle of random text not buttons */
 .a-default {
-  @apply underline rounded-sm p-1 text-indigo-600 hover:bg-indigo-200 hover:text-indigo-900
+  @apply underline rounded-sm p-1 text-indigo-600 hover:bg-indigo-200 hover:text-indigo-900;
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.layered {
+  @apply grid;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.inline-layered {
+  @apply inline-grid;
+}
+
+.layered > *,
+.inline-layered > * {
+  @apply col-start-1 row-start-1;
 }

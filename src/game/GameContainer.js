@@ -6,14 +6,13 @@ import Chess from 'chess.js'
 import Game from './Game.js'
 import { pieceKeys } from './constants.js'
 
-const chess = new Chess()
-window.chess = chess
-
-const xyToPosition = ({ x, y }) => chess.SQUARES[y * 8 + x]
-
 const GameContainer = () => {
   const [selectedSquare, setSelectedSquare] = useState(null)
   const [promotionHold, setPromotionHold] = useState(null)
+
+  const [chess] = useState(new Chess())
+  
+  const xyToPosition = ({ x, y }) => chess.SQUARES[y * 8 + x]
 
   const canPickUp = position => chess.moves({ square: position }).length > 0 && !promotionHold
 
@@ -50,11 +49,13 @@ const GameContainer = () => {
       setPromotionHold(moveObject)
     } else {
       chess.move(moveObject)
+      window.chess = chess
     }
   }
 
   const selectPromotion = (piece) => {
     chess.move({ ...promotionHold, promotion: _.invert(pieceKeys)[piece] })
+    window.chess = chess
     setPromotionHold(null)
   }
 
