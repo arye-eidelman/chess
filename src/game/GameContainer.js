@@ -4,6 +4,7 @@ import ResponsiveDndProvider from './ResponsiveDndProvider.js'
 import { getAuth } from "firebase/auth";
 
 import LocalChessAPI from './LocalChessAPI.js'
+import LocalAIChessAPI from './LocalAIChessAPI.js'
 import OnlineChessAPI from './OnlineChessAPI.js'
 import GamePlay from './GamePlay.js'
 import GameSetup from './GameSetup.js'
@@ -38,12 +39,31 @@ const GameContainer = () => {
 
   useEffect(() => {
     if (isValidConfig(config)) {
-      // TODO: select correct chess client based on opponent
       if (config.opponent === "local") {
         const api = new LocalChessAPI()
         setChessAPI(api)
         setGameState(api.state())
         api.onChange(setGameState)
+      } else if (config.opponent === "ai") {
+        // Determine AI color based on player's color choice
+        let playerColor = config.color
+        if (playerColor === "random") {
+          playerColor = Math.random() < 0.5 ? "w" : "b"
+        }
+        // AI plays opposite color of player
+        const aiColor = playerColor === "w" ? "b" : "w"
+        
+        const api = new LocalAIChessAPI(config.difficulty, aiColor)
+        setChessAPI(api)
+        setGameState(api.state())
+        api.onChange(setGameState)
+        
+        // If AI plays white, make first move
+        if (aiColor === "w") {
+          setTimeout(() => {
+            api.makeAIMove()
+          }, 500)
+        }
       }
     }
   }, [config])
@@ -133,7 +153,9 @@ const GameContainer = () => {
               ? gameState.turn
               : config.opponent === 'local'
                 ? 'w'
-                : gameState.playingAsColor}
+                : config.opponent === 'ai'
+                  ? gameState.playingAsColor
+                  : gameState.playingAsColor}
         />
       </ResponsiveDndProvider>
     )
