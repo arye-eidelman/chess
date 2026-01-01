@@ -2,11 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-/* [tag-name]-default classes are used for replacing basic styles removed by tailwind */
+@layer components {
+  .a-default-light {
+    @apply text-violet-700;
+    @apply hover:bg-violet-200 hover:text-violet-900 hover:ring-violet-200;
+    @apply focus:bg-violet-200 focus:text-violet-900 focus:ring-offset-violet-200 focus:ring-violet-900;
+  }
+  .a-default-dark {
+    @apply text-violet-500;
+    @apply hover:bg-violet-800 hover:text-violet-200 hover:ring-violet-800;
+    @apply focus:bg-violet-800 focus:text-violet-200 focus:ring-offset-violet-800 focus:ring-violet-200;
+  }
+  .a-default {
+    @apply transition-all rounded-sm inline-block relative origin-center bg-origin-border;
+    @apply hover:ring-4;
+    @apply focus:ring-offset-4 focus:ring-2 focus:outline-none;
+    @apply a-default-light dark:a-default-dark;
+  }
+  .a-fixed-padding {
+    @apply a-default px-1 -mx-1;
+  }
 
-/* for links in middle of random text not buttons */
-.a-default {
-  @apply underline rounded-sm p-1 text-indigo-600 hover:bg-indigo-200 hover:text-indigo-900;
+  .menu-item-light {
+    @apply text-neutral-700;
+    @apply hover:bg-violet-200 hover:text-violet-900;
+    @apply focus:bg-violet-200 focus:text-violet-900 focus:ring-violet-900;
+  }
+  .menu-item-dark {
+    @apply text-neutral-300;
+    @apply hover:bg-violet-800 hover:text-violet-200;
+    @apply focus:bg-violet-800 focus:text-violet-200 focus:ring-violet-200;
+  }
+  .menu-item {
+    @apply transition-all rounded-sm inline-block relative origin-center bg-origin-border px-3 py-2;
+    @apply focus:ring-2 focus:outline-none;
+    @apply menu-item-light dark:menu-item-dark;
+  }
+
+  .button-default-light {
+    @apply text-neutral-700;
+    @apply hover:bg-violet-200 hover:text-violet-900;
+    @apply focus:bg-violet-200 focus:text-violet-900 focus:ring-violet-900;
+  }
+  .button-default-dark {
+    @apply text-neutral-300;
+    @apply hover:bg-violet-800 hover:text-violet-200;
+    @apply focus:bg-violet-800 focus:text-violet-200 focus:ring-violet-200;
+  }
+  .button-default {
+    @apply transition-all rounded-sm inline-block relative origin-center bg-origin-border px-3 py-2 m-4;
+    @apply focus:ring-2 focus:outline-none;
+    @apply button-default-light dark:button-default-dark;
+  }
 }
 
 .layered {

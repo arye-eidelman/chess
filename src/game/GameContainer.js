@@ -1,37 +1,71 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import _ from 'lodash'
+import React, { useState, useEffect } from 'react'
+import invert from 'lodash/invert'
 import ResponsiveDndProvider from './ResponsiveDndProvider.js'
-import Chess from 'chess.js'
+import { getAuth } from "firebase/auth";
 
-import ChessAPI from './ChessAPI.js'
-import Game from './Game.js'
+import LocalChessAPI from './LocalChessAPI.js'
+import OnlineChessAPI from './OnlineChessAPI.js'
+import GamePlay from './GamePlay.js'
+import GameSetup from './GameSetup.js'
 import { pieceKeys } from './constants.js'
 
+
+const configOptions = {
+  opponent: [["local", "Local"], ["online_random", "Online random"], ["online_friend", "Online friend"], ["ai", "AI"]],
+  color: [["random", "Random"], ["w", "White"], ["b", "Black"]],
+  difficulty: [["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"], ["impossible", "Impossible"]],
+  rotate: [[true, "Yes"], [false, "No"]]
+}
+
+
+function isValidConfig(config) {
+  return config.opponent !== undefined
+    && (config.opponent === "local"
+      ? (config.rotate !== undefined)
+      : config.opponent === "ai"
+        ? (config.color !== undefined && config.difficulty !== undefined)
+        : true)
+}
+
 const GameContainer = () => {
+  const [config, setConfig] = useState({})
+  const [chessAPI, setChessAPI] = useState(null)
   const [selectedSquare, setSelectedSquare] = useState(null)
   const [promotionHold, setPromotionHold] = useState(null)
 
-  const [gameID, setGameID] = useState(null)
-  const [fen, setFen] = useState(null)
-  const [chess, setChess] = useState(new Chess())
-  const updateFen = useCallback(() => setFen(ChessAPI.fen(gameID)), [gameID])
+  // const [gameId, setGameId] = useState(null)
+  const [gameState, setGameState] = useState(null)
 
   useEffect(() => {
-    setChess(new Chess())
-    if (gameID) {
-      updateFen()
-    } else {
-      setGameID(ChessAPI.create())
+    if (isValidConfig(config)) {
+      // TODO: select correct chess client based on opponent
+      if (config.opponent === "local") {
+        const api = new LocalChessAPI()
+        setChessAPI(api)
+        setGameState(api.state())
+        api.onChange(setGameState)
+      }
     }
-  }, [gameID, updateFen])
+  }, [config])
 
-  useEffect(() => {
-    setChess(fen ? new Chess(fen) : new Chess())
-  }, [fen])
+  const xyToPosition = ({ x, y }) => gameState.SQUARES[y * 8 + x]
+  const positionToXY = (position) => {
+    if (typeof position === "number") {
+      const x = position % 8
+      const y = Math.floor(position / 8)
+      return { x, y }
+    } else if (typeof position === "string") {
+      const x = position.charCodeAt(0) - 97
+      const y = 7 - (position.charCodeAt(1) - 49)
+      return { x, y }
+    }
+  }
 
-  const xyToPosition = ({ x, y }) => chess.SQUARES[y * 8 + x]
-
-  const canPickUp = position => chess.moves({ square: position }).length > 0 && !promotionHold
+  const canPickUp = position => {
+    return chessAPI.moves({ square: position }).length > 0
+      && !promotionHold
+      && gameState.playingAsColor === gameState.turn
+  }
 
   const pickUpPiece = (position) => {
     if (canPickUp(position)) {
@@ -39,7 +73,7 @@ const GameContainer = () => {
     }
   }
 
-  const legalMoves = chess.moves({ square: selectedSquare || "or it'll return []", verbose: true })
+  const legalMoves = chessAPI ? chessAPI.moves({ square: selectedSquare || "or it'll return []", verbose: true }) : []
 
   const canPutDown = (position) => {
     if (promotionHold) { return false }
@@ -65,35 +99,49 @@ const GameContainer = () => {
     if (legalMoves.some(move => move.to === moveObject.to && move.flags.includes("p"))) {
       setPromotionHold(moveObject)
     } else {
-      ChessAPI.move(gameID, moveObject) && updateFen()
+      chessAPI.move(moveObject)
     }
   }
 
   const selectPromotion = (piece) => {
-    const promotionMove = { ...promotionHold, promotion: _.invert(pieceKeys)[piece] }
-    ChessAPI.move(gameID, promotionMove) && updateFen()
+    const promotionMove = { ...promotionHold, promotion: invert(pieceKeys)[piece] }
+    chessAPI.move(promotionMove)
     setPromotionHold(null)
   }
 
   const cancelPromotion = () => setPromotionHold(null)
 
-  return (
-    <ResponsiveDndProvider>
-      <Game
-        chess={chess}
-        xyToPosition={xyToPosition}
-        canPickUp={canPickUp}
-        canPutDown={canPutDown}
-        putDownPiece={putDownPiece}
-        pickUpPiece={pickUpPiece}
-        selectedSquare={selectedSquare}
-        selectSquare={selectSquare}
-        promotionHold={promotionHold}
-        selectPromotion={selectPromotion}
-        cancelPromotion={cancelPromotion}
-      />
-    </ResponsiveDndProvider>
-  )
+  if (gameState) {
+    return (
+      <ResponsiveDndProvider>
+        <GamePlay
+          gameState={gameState}
+          xyToPosition={xyToPosition}
+          positionToXY={positionToXY}
+          canPickUp={canPickUp}
+          canPutDown={canPutDown}
+          pickUpPiece={pickUpPiece}
+          putDownPiece={putDownPiece}
+          selectedSquare={selectedSquare}
+          selectSquare={selectSquare}
+          promotionHold={promotionHold}
+          selectPromotion={selectPromotion}
+          cancelPromotion={cancelPromotion}
+          playingAsColor={gameState.playingAsColor}
+          boardPerspective={
+            config.rotate
+              ? gameState.turn
+              : config.opponent === 'local'
+                ? 'w'
+                : gameState.playingAsColor}
+        />
+      </ResponsiveDndProvider>
+    )
+  } else {
+    return (
+      <GameSetup config={config} setConfig={setConfig} configOptions={configOptions} />
+    )
+  }
 }
 
 export default GameContainer
