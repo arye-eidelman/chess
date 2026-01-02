@@ -13,6 +13,12 @@ const GameOverScreen = ({ gameState, playingAsColor, onNewGame, opponentType }) 
           message: playerLost ? 'Checkmate! The AI has defeated you.' : 'Checkmate! You defeated the AI!',
           color: playerLost ? 'text-red-600' : 'text-green-600'
         }
+      } else if (opponentType === 'online_friend') {
+        return {
+          title: playerLost ? 'You Lost!' : 'You Won!',
+          message: playerLost ? 'Checkmate! Your opponent has defeated you.' : 'Checkmate! You defeated your opponent!',
+          color: playerLost ? 'text-red-600' : 'text-green-600'
+        }
       } else {
         const winner = playerLost ? (playingAsColor === 'w' ? 'Black' : 'White') : (playingAsColor === 'w' ? 'White' : 'Black')
         return {

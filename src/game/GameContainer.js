@@ -4,14 +4,17 @@ import ResponsiveDndProvider from './ResponsiveDndProvider.js'
 
 import LocalChessAPI from './LocalChessAPI.js'
 import LocalAIChessAPI from './LocalAIChessAPI.js'
+import OnlineChessAPI from './OnlineChessAPI.js'
 import GamePlay from './GamePlay.js'
 import GameSetup from './GameSetup.js'
 import GameOverScreen from './GameOverScreen.js'
+import GameShare from './GameShare.js'
+import GameJoin from './GameJoin.js'
 import { pieceKeys } from './constants.js'
 
 
 const configOptions = {
-  opponent: [["local", "Local"], ["online_random", "Online random"], ["online_friend", "Online friend"], ["ai", "AI"]],
+  opponent: [["local", "IRL friend"], ["online_friend", "Online friend"], ["ai", "Computer AI"]],
   color: [["random", "Random"], ["w", "White"], ["b", "Black"]],
   difficulty: [["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"], ["impossible", "Impossible"]],
   rotate: [[true, "Yes"], [false, "No"]]
@@ -32,9 +35,28 @@ const GameContainer = () => {
   const [chessAPI, setChessAPI] = useState(null)
   const [selectedSquare, setSelectedSquare] = useState(null)
   const [promotionHold, setPromotionHold] = useState(null)
+  const [showShare, setShowShare] = useState(false)
+  const [showJoin, setShowJoin] = useState(false)
+  const [joinError, setJoinError] = useState('')
 
   // const [gameId, setGameId] = useState(null)
   const [gameState, setGameState] = useState(null)
+
+  // Check URL for game code
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const gameCode = urlParams.get('game')
+    if (gameCode && !config.opponent) {
+      setConfig({ opponent: 'online_friend', gameCode })
+    }
+  }, [])
+
+  // Close share dialog when opponent joins
+  useEffect(() => {
+    if (config.opponent === 'online_friend' && gameState?.opponentConnected && showShare) {
+      setShowShare(false)
+    }
+  }, [gameState?.opponentConnected, config.opponent, showShare])
 
   useEffect(() => {
     if (isValidConfig(config)) {
@@ -63,6 +85,32 @@ const GameContainer = () => {
             api.makeAIMove()
           }, 500)
         }
+      } else if (config.opponent === "online_friend") {
+        // Handle online friend mode
+        const initializeOnlineGame = async () => {
+          try {
+            let api
+            if (config.gameCode) {
+              // Joining existing game
+              api = await OnlineChessAPI.joinGame(config.gameCode)
+            } else {
+              // Creating new game
+              const result = await OnlineChessAPI.createGame()
+              api = result.api
+              setConfig({ ...config, gameCode: result.gameCode })
+              setShowShare(true)
+            }
+            setChessAPI(api)
+            const initialState = api.state()
+            setGameState(initialState)
+            api.onChange(setGameState)
+          } catch (error) {
+            console.error('Error initializing online game:', error)
+            setJoinError(error.message || 'Failed to join game')
+            setShowJoin(true)
+          }
+        }
+        initializeOnlineGame()
       }
     }
   }, [config])
@@ -85,6 +133,7 @@ const GameContainer = () => {
       && chessAPI.moves({ square: position }).length > 0
       && !promotionHold
       && gameState.playingAsColor === gameState.turn
+      && (config.opponent !== 'online_friend' || gameState.isMyTurn)
   }
 
   const pickUpPiece = (position) => {
@@ -139,6 +188,20 @@ const GameContainer = () => {
     setPromotionHold(null)
   }
 
+  const handleCreateGame = async () => {
+    setConfig({ opponent: 'online_friend' })
+  }
+
+  const handleJoinGame = async (gameCode) => {
+    try {
+      setJoinError('')
+      setConfig({ opponent: 'online_friend', gameCode })
+      setShowJoin(false)
+    } catch (error) {
+      setJoinError(error.message || 'Failed to join game')
+    }
+  }
+
   if (gameState) {
     return (
       <ResponsiveDndProvider>
@@ -167,6 +230,9 @@ const GameContainer = () => {
                     : gameState.playingAsColor}
             isAITurn={config.opponent === 'ai' && gameState.isAITurn}
             isThinking={config.opponent === 'ai' && gameState.isThinking}
+            isOnlineGame={config.opponent === 'online_friend'}
+            isMyTurn={gameState.isMyTurn}
+            opponentConnected={gameState.opponentConnected}
           />
           {gameState.gameOver && (
             <GameOverScreen
@@ -176,12 +242,56 @@ const GameContainer = () => {
               opponentType={config.opponent}
             />
           )}
+          {config.opponent === 'online_friend' && chessAPI && !gameState.gameOver && !gameState.opponentConnected && (
+            <div className='mt-4 text-center'>
+              <button
+                onClick={() => setShowShare(true)}
+                className='px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+              >
+                Share Game
+              </button>
+            </div>
+          )}
+          {showShare && chessAPI && (
+            <GameShare
+              gameCode={config.gameCode}
+              shareableLink={chessAPI.getShareableLink()}
+              onClose={() => setShowShare(false)}
+            />
+          )}
         </div>
       </ResponsiveDndProvider>
     )
   } else {
     return (
-      <GameSetup config={config} setConfig={setConfig} configOptions={configOptions} />
+      <>
+        <GameSetup config={config} setConfig={setConfig} configOptions={configOptions} />
+        {config.opponent === 'online_friend' && !config.gameCode && (
+          <div className='flex flex-col items-center gap-4 mt-4'>
+            <button
+              onClick={handleCreateGame}
+              className='px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+            >
+              Create Game
+            </button>
+            <button
+              onClick={() => setShowJoin(true)}
+              className='px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors'
+            >
+              Join Game
+            </button>
+          </div>
+        )}
+        {showJoin && (
+          <GameJoin
+            onJoin={handleJoinGame}
+            onCancel={() => {
+              setShowJoin(false)
+              setConfig({})
+            }}
+          />
+        )}
+      </>
     )
   }
 }

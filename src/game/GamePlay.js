@@ -15,7 +15,8 @@ const GamePlay = ({
   selectedSquare, selectSquare,
   promotionHold, selectPromotion, cancelPromotion,
   boardPerspective, playingAsColor,
-  isAITurn, isThinking
+  isAITurn, isThinking,
+  isOnlineGame, isMyTurn, opponentConnected
 }) => {
   const BoardSquares = gameState.board
     .map((row, y) => {
@@ -62,6 +63,35 @@ const GamePlay = ({
         )
       })
     }).flat() // flattening the array allows for rotating instead of flipping the board
+  const getTurnIndicator = () => {
+    if (isOnlineGame) {
+      if (!opponentConnected) {
+        return (
+          <div className='mt-4 text-center'>
+            <div className='text-lg font-semibold text-yellow-600'>Waiting for opponent to join...</div>
+          </div>
+        )
+      }
+      const turnColor = gameState.turn === 'w' ? 'White' : 'Black'
+      const isYourTurn = isMyTurn
+      return (
+        <div className='mt-4 text-center'>
+          <div className={`text-lg font-semibold ${isYourTurn ? 'text-green-600' : 'text-gray-600'}`}>
+            {isYourTurn ? (
+              <span className='flex items-center justify-center gap-2'>
+                <span className='h-3 w-3 rounded-full bg-green-600 animate-pulse'></span>
+                Your turn ({turnColor})
+              </span>
+            ) : (
+              <span>Opponent's turn ({turnColor})</span>
+            )}
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
+
   return (
     <div className='max-w-[calc(100vh_-_20px)] mx-auto p-4 layered items-center justify-items-center'>
       <section className='aspect-square grid grid-rows-[repeat(8,_1fr)] grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200'>
@@ -80,6 +110,8 @@ const GamePlay = ({
           <span>AI is thinking...</span>
         </div>
       ) : null}
+
+      {getTurnIndicator()}
     </div>
   )
 }
