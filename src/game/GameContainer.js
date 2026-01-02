@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import invert from 'lodash/invert'
 import ResponsiveDndProvider from './ResponsiveDndProvider.js'
-import { getAuth } from "firebase/auth";
 
 import LocalChessAPI from './LocalChessAPI.js'
 import LocalAIChessAPI from './LocalAIChessAPI.js'
-import OnlineChessAPI from './OnlineChessAPI.js'
 import GamePlay from './GamePlay.js'
 import GameSetup from './GameSetup.js'
 import GameOverScreen from './GameOverScreen.js'

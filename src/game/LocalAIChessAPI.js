@@ -1,4 +1,3 @@
-import Chess from 'chess.js'
 import LocalChessAPI from './LocalChessAPI.js'
 
 class AIChessAPI extends LocalChessAPI {
