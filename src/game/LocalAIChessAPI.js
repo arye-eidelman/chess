@@ -219,6 +219,9 @@ class AIChessAPI extends LocalChessAPI {
     }
 
     this.isThinking = true
+    // Trigger state update to show thinking indicator
+    const state = this.state()
+    this.onChangeCallbacks.forEach(callback => callback(state))
 
     // Add a small delay to make it feel more natural
     await new Promise(resolve => setTimeout(resolve, 300))
@@ -241,6 +244,9 @@ class AIChessAPI extends LocalChessAPI {
     }
 
     this.isThinking = false
+    // Trigger state update to hide thinking indicator
+    const finalState = this.state()
+    this.onChangeCallbacks.forEach(callback => callback(finalState))
   }
 
   // Override move to trigger AI move after player's move

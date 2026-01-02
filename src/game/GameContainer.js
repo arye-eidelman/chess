@@ -8,6 +8,7 @@ import LocalAIChessAPI from './LocalAIChessAPI.js'
 import OnlineChessAPI from './OnlineChessAPI.js'
 import GamePlay from './GamePlay.js'
 import GameSetup from './GameSetup.js'
+import GameOverScreen from './GameOverScreen.js'
 import { pieceKeys } from './constants.js'
 
 
@@ -82,7 +83,8 @@ const GameContainer = () => {
   }
 
   const canPickUp = position => {
-    return chessAPI.moves({ square: position }).length > 0
+    return !gameState.gameOver
+      && chessAPI.moves({ square: position }).length > 0
       && !promotionHold
       && gameState.playingAsColor === gameState.turn
   }
@@ -131,32 +133,52 @@ const GameContainer = () => {
 
   const cancelPromotion = () => setPromotionHold(null)
 
+  const handleNewGame = () => {
+    setConfig({})
+    setChessAPI(null)
+    setGameState(null)
+    setSelectedSquare(null)
+    setPromotionHold(null)
+  }
+
   if (gameState) {
     return (
       <ResponsiveDndProvider>
-        <GamePlay
-          gameState={gameState}
-          xyToPosition={xyToPosition}
-          positionToXY={positionToXY}
-          canPickUp={canPickUp}
-          canPutDown={canPutDown}
-          pickUpPiece={pickUpPiece}
-          putDownPiece={putDownPiece}
-          selectedSquare={selectedSquare}
-          selectSquare={selectSquare}
-          promotionHold={promotionHold}
-          selectPromotion={selectPromotion}
-          cancelPromotion={cancelPromotion}
-          playingAsColor={gameState.playingAsColor}
-          boardPerspective={
-            config.rotate
-              ? gameState.turn
-              : config.opponent === 'local'
-                ? 'w'
-                : config.opponent === 'ai'
-                  ? gameState.playingAsColor
-                  : gameState.playingAsColor}
-        />
+        <div className='flex flex-col lg:flex-row items-center justify-center gap-6 p-4'>
+          <GamePlay
+            gameState={gameState}
+            xyToPosition={xyToPosition}
+            positionToXY={positionToXY}
+            canPickUp={canPickUp}
+            canPutDown={canPutDown}
+            pickUpPiece={pickUpPiece}
+            putDownPiece={putDownPiece}
+            selectedSquare={selectedSquare}
+            selectSquare={selectSquare}
+            promotionHold={promotionHold}
+            selectPromotion={selectPromotion}
+            cancelPromotion={cancelPromotion}
+            playingAsColor={gameState.playingAsColor}
+            boardPerspective={
+              config.rotate
+                ? gameState.turn
+                : config.opponent === 'local'
+                  ? 'w'
+                  : config.opponent === 'ai'
+                    ? gameState.playingAsColor
+                    : gameState.playingAsColor}
+            isAITurn={config.opponent === 'ai' && gameState.isAITurn}
+            isThinking={config.opponent === 'ai' && gameState.isThinking}
+          />
+          {gameState.gameOver && (
+            <GameOverScreen
+              gameState={gameState}
+              playingAsColor={gameState.playingAsColor}
+              onNewGame={handleNewGame}
+              opponentType={config.opponent}
+            />
+          )}
+        </div>
       </ResponsiveDndProvider>
     )
   } else {

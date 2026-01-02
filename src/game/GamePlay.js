@@ -14,7 +14,8 @@ const GamePlay = ({
   canPutDown, putDownPiece,
   selectedSquare, selectSquare,
   promotionHold, selectPromotion, cancelPromotion,
-  boardPerspective, playingAsColor
+  boardPerspective, playingAsColor,
+  isAITurn, isThinking
 }) => {
   const BoardSquares = gameState.board
     .map((row, y) => {
@@ -32,11 +33,15 @@ const GamePlay = ({
           renderPiece = gameState.board[fromPosition.y][fromPosition.x]
         }
 
+        const isLastMove = gameState.lastMove && 
+          (gameState.lastMove.from === position || gameState.lastMove.to === position)
+
         return (
           <BoardSquare
             isDark={(x + y) % 2 === 1}
             isFocused={(selectedSquare && selectedSquare === position) || (promotionHold && promotionHold.to === position)}
             canPutDown={canPutDown(position)}
+            isLastMove={isLastMove}
             key={position}
             putDown={putDown}
             pickUp={pickUp}
@@ -64,6 +69,17 @@ const GamePlay = ({
       </section>
 
       {promotionHold ? <PromotionPicker pick={selectPromotion} cancel={cancelPromotion} color={colorKeys[gameState.turn]} /> : null}
+      
+      {isThinking ? (
+        <div className='mt-4 flex items-center justify-center gap-2 text-lg font-semibold text-neutral-700'>
+          <div className='flex gap-1'>
+            <div className='h-2 w-2 rounded-full bg-neutral-400 thinking-dot'></div>
+            <div className='h-2 w-2 rounded-full bg-neutral-400 thinking-dot'></div>
+            <div className='h-2 w-2 rounded-full bg-neutral-400 thinking-dot'></div>
+          </div>
+          <span>AI is thinking...</span>
+        </div>
+      ) : null}
     </div>
   )
 }

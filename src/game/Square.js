@@ -1,7 +1,7 @@
 import { forwardRef } from 'react'
 
 const Square = forwardRef((props, ref) => {
-  const { isFocused, isUnderDrag, canPutDown, isDark } = props
+  const { isFocused, isUnderDrag, canPutDown, isDark, isLastMove } = props
   return (
     <div
       ref={ref}
@@ -10,7 +10,8 @@ const Square = forwardRef((props, ref) => {
         isFocused ? (isDark ? "bg-[#f8f]" : "bg-[#fcf]")
           : isUnderDrag ? (isDark ? "bg-[#8ff]" : "bg-[#cff]")
             : canPutDown ? (isDark ? "bg-[#ff8]" : "bg-[#ffc]")
-              : (isDark ? "bg-[#ccc]" : "bg-[#fff]")
+              : isLastMove ? (isDark ? "bg-[#bbd]" : "bg-[#ddf]")
+                : (isDark ? "bg-[#ccc]" : "bg-[#fff]")
       )}
     >
       {props.children}

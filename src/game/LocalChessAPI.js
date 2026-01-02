@@ -2,13 +2,20 @@ import Chess from 'chess.js'
 
 class ChessAPI {
   onChangeCallbacks = []
+  lastMove = null
   constructor() {
     this.game = new Chess()
     window.chess = this.game
   }
 
   async move(move, options = {}) {
-    this.game.move(move, options)
+    const moveResult = this.game.move(move, options)
+    if (moveResult) {
+      this.lastMove = {
+        from: moveResult.from,
+        to: moveResult.to
+      }
+    }
     const state = this.state()
     this.onChangeCallbacks.forEach(callback => callback(state))
   }
@@ -31,6 +38,7 @@ class ChessAPI {
       stalemate: this.game.in_stalemate(),
       threefoldRepetition: this.game.in_threefold_repetition(),
       insufficient_material: this.game.insufficient_material(),
+      lastMove: this.lastMove,
     }
   }
 
