@@ -37,7 +37,7 @@ const GameContainer = () => {
   const [promotionHold, setPromotionHold] = useState(null)
   const [showShare, setShowShare] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
-  const [joinError, setJoinError] = useState('')
+  const [, setJoinError] = useState('')
 
   // const [gameId, setGameId] = useState(null)
   const [gameState, setGameState] = useState(null)
@@ -49,7 +49,7 @@ const GameContainer = () => {
     if (gameCode && !config.opponent) {
       setConfig({ opponent: 'online_friend', gameCode })
     }
-  }, [])
+  }, [config.opponent])
 
   // Close share dialog when opponent joins
   useEffect(() => {

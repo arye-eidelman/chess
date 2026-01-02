@@ -1,5 +1,5 @@
 import { getDatabase, ref, set, update, onValue, get } from "firebase/database";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import Chess from 'chess.js'
 import '../firebaseInit.js'
 
