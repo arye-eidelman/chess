@@ -27,7 +27,9 @@ function isValidConfig(config) {
       ? (config.rotate !== undefined)
       : config.opponent === "ai"
         ? (config.color !== undefined && config.difficulty !== undefined)
-        : true)
+        : config.opponent === "online_friend"
+          ? (config.gameCode !== undefined || config.shouldCreateGame === true) // Only valid if gameCode is set or user clicked Create
+          : true)
 }
 
 const GameContainer = () => {
@@ -37,7 +39,8 @@ const GameContainer = () => {
   const [promotionHold, setPromotionHold] = useState(null)
   const [showShare, setShowShare] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
-  const [, setJoinError] = useState('')
+  const [joinError, setJoinError] = useState('')
+  const [isJoining, setIsJoining] = useState(false)
 
   // const [gameId, setGameId] = useState(null)
   const [gameState, setGameState] = useState(null)
@@ -100,7 +103,7 @@ const GameContainer = () => {
               // Creating new game
               const result = await OnlineChessAPI.createGame()
               api = result.api
-              setConfig({ ...config, gameCode: result.gameCode })
+              setConfig({ ...config, gameCode: result.gameCode, shouldCreateGame: false })
               setShowShare(true)
             }
             setChessAPI(api)
@@ -110,6 +113,7 @@ const GameContainer = () => {
           } catch (error) {
             console.error('Error initializing online game:', error)
             setJoinError(error.message || 'Failed to join game')
+            setJoinError('')
             setShowJoin(true)
           }
         }
@@ -199,16 +203,24 @@ const GameContainer = () => {
   }
 
   const handleCreateGame = async () => {
-    setConfig({ opponent: 'online_friend' })
+    setConfig({ opponent: 'online_friend', shouldCreateGame: true })
   }
 
   const handleJoinGame = async (gameCode) => {
+    if (isJoining) return // Prevent multiple join attempts
+
     try {
+      setIsJoining(true)
       setJoinError('')
+      // Try to join the game - this will throw an error if the game doesn't exist or is invalid
+      await OnlineChessAPI.joinGame(gameCode)
+      // If successful, set the config to initialize the game
       setConfig({ opponent: 'online_friend', gameCode })
       setShowJoin(false)
+      setIsJoining(false)
     } catch (error) {
       setJoinError(error.message || 'Failed to join game')
+      setIsJoining(false)
     }
   }
 
@@ -291,7 +303,10 @@ const GameContainer = () => {
               Create Game
             </button>
             <button
-              onClick={() => setShowJoin(true)}
+              onClick={() => {
+                setJoinError('')
+                setShowJoin(true)
+              }}
               className='px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors'
             >
               Join Game
@@ -304,7 +319,12 @@ const GameContainer = () => {
             onCancel={() => {
               setShowJoin(false)
               setConfig({})
+              setJoinError('')
+              setIsJoining(false)
             }}
+            onInputChange={() => setJoinError('')}
+            joinError={joinError}
+            isJoining={isJoining}
           />
         )}
       </>

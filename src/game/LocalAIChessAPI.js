@@ -14,9 +14,9 @@ class AIChessAPI extends LocalChessAPI {
   getDepthForDifficulty(difficulty) {
     switch (difficulty) {
       case 'easy':
-        return 1
+        return 2
       case 'medium':
-        return 3
+        return 4
       case 'hard':
         return 5
       case 'impossible':
