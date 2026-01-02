@@ -215,8 +215,8 @@ const GameContainer = () => {
   if (gameState) {
     return (
       <ResponsiveDndProvider>
-        <div className='flex flex-col lg:flex-row items-start lg:items-center justify-center gap-6 p-4'>
-          <div className='flex flex-col items-center gap-4'>
+        <div className='flex flex-col md:flex-row items-start md:items-center justify-center gap-4 md:gap-6 p-2 md:p-4 w-full h-full overflow-hidden'>
+          <div className='flex flex-col items-center gap-4 flex-shrink-0 max-w-full'>
             <GamePlay
               gameState={gameState}
               xyToPosition={xyToPosition}

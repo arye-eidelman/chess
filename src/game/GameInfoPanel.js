@@ -191,13 +191,13 @@ const GameInfoPanel = ({
   }
 
   return (
-    <div className='w-full lg:w-64 flex-shrink-0'>
-      <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-4 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto'>
+    <div className='w-full md:w-64 flex-shrink-0 max-w-full'>
+      <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-2 md:p-4 space-y-2 md:space-y-4 max-h-[min(calc(100vh-4rem),600px)] overflow-y-auto'>
         {/* Turn Status / Game Over */}
-        <div className={`${turnStatus.bg} ${turnStatus.color} p-3 rounded-lg text-center`}>
-          <div className='font-semibold text-lg mb-1'>{turnStatus.text}</div>
+        <div className={`${turnStatus.bg} ${turnStatus.color} p-2 md:p-3 rounded-lg text-center`}>
+          <div className='font-semibold text-sm md:text-lg mb-0.5 md:mb-1'>{turnStatus.text}</div>
           {turnStatus.message && (
-            <div className='text-sm opacity-90'>{turnStatus.message}</div>
+            <div className='text-xs md:text-sm opacity-90'>{turnStatus.message}</div>
           )}
         </div>
 
@@ -205,19 +205,19 @@ const GameInfoPanel = ({
         {gameState.gameOver && onNewGame && (
           <button
             onClick={onNewGame}
-            className='w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+            className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg text-sm md:text-base font-semibold hover:bg-blue-700 transition-colors'
           >
             New Game
           </button>
         )}
 
         {/* Captured Pieces */}
-        <div className='space-y-3'>
+        <div className='space-y-2 md:space-y-3'>
           <div>
-            <div className='text-sm font-semibold text-gray-700 mb-2'>Captured by Black</div>
-            <div className='flex flex-wrap gap-1 min-h-[40px] p-2 bg-gray-100 rounded'>
+            <div className='text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2'>Captured by Black</div>
+            <div className='flex flex-wrap gap-0.5 md:gap-1 min-h-[32px] md:min-h-[40px] p-1.5 md:p-2 bg-gray-100 rounded'>
               {sortCaptured([...capturedPieces.white]).map((piece, idx) => (
-                <div key={`white-${piece}-${idx}`} className='w-6 h-6'>
+                <div key={`white-${piece}-${idx}`} className='w-5 h-5 md:w-6 md:h-6'>
                   <Piece type={pieceKeys[piece]} color="white" />
                 </div>
               ))}
@@ -228,10 +228,10 @@ const GameInfoPanel = ({
           </div>
 
           <div>
-            <div className='text-sm font-semibold text-gray-700 mb-2'>Captured by White</div>
-            <div className='flex flex-wrap gap-1 min-h-[40px] p-2 bg-gray-100 rounded'>
+            <div className='text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2'>Captured by White</div>
+            <div className='flex flex-wrap gap-0.5 md:gap-1 min-h-[32px] md:min-h-[40px] p-1.5 md:p-2 bg-gray-100 rounded'>
               {sortCaptured([...capturedPieces.black]).map((piece, idx) => (
-                <div key={`black-${piece}-${idx}`} className='w-6 h-6'>
+                <div key={`black-${piece}-${idx}`} className='w-5 h-5 md:w-6 md:h-6'>
                   <Piece type={pieceKeys[piece]} color="black" />
                 </div>
               ))}

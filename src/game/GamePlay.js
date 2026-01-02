@@ -93,8 +93,8 @@ const GamePlay = ({
   }
 
   return (
-    <div className='max-w-[calc(100vh_-_20px)] mx-auto p-4 layered items-center justify-items-center'>
-      <section className='aspect-square grid grid-rows-[repeat(8,_1fr)] grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200'>
+    <div className='w-full max-w-full mx-auto p-1 md:p-4 layered items-center justify-items-center flex-shrink-0'>
+      <section className='aspect-square grid grid-rows-[repeat(8,_1fr)] grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200 w-full max-w-[min(calc(100vh-10rem),calc(100vw-0.5rem),600px)] md:max-w-[min(calc(100vh-8rem),calc(100vw-20rem),600px)]'>
         {boardPerspective === 'w' ? BoardSquares : BoardSquares.reverse()}
       </section>
 
