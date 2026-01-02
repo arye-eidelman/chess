@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import invert from 'lodash/invert'
 import ResponsiveDndProvider from './ResponsiveDndProvider.js'
 
@@ -7,9 +7,9 @@ import LocalAIChessAPI from './LocalAIChessAPI.js'
 import OnlineChessAPI from './OnlineChessAPI.js'
 import GamePlay from './GamePlay.js'
 import GameSetup from './GameSetup.js'
-import GameOverScreen from './GameOverScreen.js'
 import GameShare from './GameShare.js'
 import GameJoin from './GameJoin.js'
+import GameInfoPanel from './GameInfoPanel.js'
 import { pieceKeys } from './constants.js'
 
 
@@ -41,15 +41,18 @@ const GameContainer = () => {
 
   // const [gameId, setGameId] = useState(null)
   const [gameState, setGameState] = useState(null)
+  const readytoJoinGame = useRef(!config.opponent && !gameState);
 
-  // Check URL for game code
+  // Check URL for game code (only on initial mount)
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const gameCode = urlParams.get('game')
-    if (gameCode && !config.opponent) {
-      setConfig({ opponent: 'online_friend', gameCode })
+    if (readytoJoinGame.current) {
+      const urlParams = new URLSearchParams(window.location.search)
+      const gameCode = urlParams.get('game')
+      if (gameCode) {
+        setConfig({ opponent: 'online_friend', gameCode })
+      }
     }
-  }, [config.opponent])
+  }, []) // Only run once on mount
 
   // Close share dialog when opponent joins
   useEffect(() => {
@@ -73,12 +76,12 @@ const GameContainer = () => {
         }
         // AI plays opposite color of player
         const aiColor = playerColor === "w" ? "b" : "w"
-        
+
         const api = new LocalAIChessAPI(config.difficulty, aiColor)
         setChessAPI(api)
         setGameState(api.state())
         api.onChange(setGameState)
-        
+
         // If AI plays white, make first move
         if (aiColor === "w") {
           setTimeout(() => {
@@ -186,6 +189,13 @@ const GameContainer = () => {
     setGameState(null)
     setSelectedSquare(null)
     setPromotionHold(null)
+    setShowShare(false)
+    setShowJoin(false)
+    setJoinError('')
+    // Clear URL parameter if present
+    if (window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }
 
   const handleCreateGame = async () => {
@@ -205,53 +215,59 @@ const GameContainer = () => {
   if (gameState) {
     return (
       <ResponsiveDndProvider>
-        <div className='flex flex-col lg:flex-row items-center justify-center gap-6 p-4'>
-          <GamePlay
+        <div className='flex flex-col lg:flex-row items-start lg:items-center justify-center gap-6 p-4'>
+          <div className='flex flex-col items-center gap-4'>
+            <GamePlay
+              gameState={gameState}
+              xyToPosition={xyToPosition}
+              positionToXY={positionToXY}
+              canPickUp={canPickUp}
+              canPutDown={canPutDown}
+              pickUpPiece={pickUpPiece}
+              putDownPiece={putDownPiece}
+              selectedSquare={selectedSquare}
+              selectSquare={selectSquare}
+              promotionHold={promotionHold}
+              selectPromotion={selectPromotion}
+              cancelPromotion={cancelPromotion}
+              playingAsColor={gameState.playingAsColor}
+              boardPerspective={
+                config.rotate
+                  ? gameState.turn
+                  : config.opponent === 'local'
+                    ? 'w'
+                    : config.opponent === 'ai'
+                      ? gameState.playingAsColor
+                      : gameState.playingAsColor}
+              isAITurn={config.opponent === 'ai' && gameState.isAITurn}
+              isThinking={config.opponent === 'ai' && gameState.isThinking}
+              isOnlineGame={config.opponent === 'online_friend'}
+              isMyTurn={gameState.isMyTurn}
+              opponentConnected={gameState.opponentConnected}
+            />
+            {config.opponent === 'online_friend' && chessAPI && !gameState.gameOver && !gameState.opponentConnected && (
+              <div className='text-center'>
+                <button
+                  onClick={() => setShowShare(true)}
+                  className='px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+                >
+                  Share Game
+                </button>
+              </div>
+            )}
+          </div>
+
+          <GameInfoPanel
             gameState={gameState}
-            xyToPosition={xyToPosition}
-            positionToXY={positionToXY}
-            canPickUp={canPickUp}
-            canPutDown={canPutDown}
-            pickUpPiece={pickUpPiece}
-            putDownPiece={putDownPiece}
-            selectedSquare={selectedSquare}
-            selectSquare={selectSquare}
-            promotionHold={promotionHold}
-            selectPromotion={selectPromotion}
-            cancelPromotion={cancelPromotion}
             playingAsColor={gameState.playingAsColor}
-            boardPerspective={
-              config.rotate
-                ? gameState.turn
-                : config.opponent === 'local'
-                  ? 'w'
-                  : config.opponent === 'ai'
-                    ? gameState.playingAsColor
-                    : gameState.playingAsColor}
-            isAITurn={config.opponent === 'ai' && gameState.isAITurn}
-            isThinking={config.opponent === 'ai' && gameState.isThinking}
             isOnlineGame={config.opponent === 'online_friend'}
             isMyTurn={gameState.isMyTurn}
             opponentConnected={gameState.opponentConnected}
+            isAITurn={config.opponent === 'ai' && gameState.isAITurn}
+            isThinking={config.opponent === 'ai' && gameState.isThinking}
+            opponentType={config.opponent}
+            onNewGame={handleNewGame}
           />
-          {gameState.gameOver && (
-            <GameOverScreen
-              gameState={gameState}
-              playingAsColor={gameState.playingAsColor}
-              onNewGame={handleNewGame}
-              opponentType={config.opponent}
-            />
-          )}
-          {config.opponent === 'online_friend' && chessAPI && !gameState.gameOver && !gameState.opponentConnected && (
-            <div className='mt-4 text-center'>
-              <button
-                onClick={() => setShowShare(true)}
-                className='px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
-              >
-                Share Game
-              </button>
-            </div>
-          )}
           {showShare && chessAPI && (
             <GameShare
               gameCode={config.gameCode}

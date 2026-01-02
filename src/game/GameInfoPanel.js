@@ -1,0 +1,250 @@
+import React, { useEffect, useState } from 'react'
+import Piece from './Piece.js'
+import { pieceKeys } from './constants.js'
+
+const GameInfoPanel = ({ 
+  gameState, 
+  playingAsColor, 
+  isOnlineGame, 
+  isMyTurn, 
+  opponentConnected,
+  isAITurn,
+  isThinking,
+  opponentType,
+  onNewGame
+}) => {
+  const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] })
+
+  // Track captured pieces by comparing current board with initial piece counts
+  useEffect(() => {
+    if (!gameState?.board) return
+
+    // Initial piece counts for a standard chess game
+    const initialCounts = {
+      white: { p: 8, r: 2, n: 2, b: 2, q: 1, k: 1 },
+      black: { p: 8, r: 2, n: 2, b: 2, q: 1, k: 1 }
+    }
+
+    // Count current pieces on board
+    const currentCounts = { white: {}, black: {} }
+    gameState.board.forEach(row => {
+      row.forEach(piece => {
+        if (piece) {
+          const color = piece.color === 'w' ? 'white' : 'black'
+          const type = piece.type.toLowerCase()
+          currentCounts[color][type] = (currentCounts[color][type] || 0) + 1
+        }
+      })
+    })
+
+    // Calculate captured pieces
+    const newCaptured = { white: [], black: [] }
+    ;['white', 'black'].forEach(color => {
+      Object.keys(initialCounts[color]).forEach(type => {
+        const initialCount = initialCounts[color][type]
+        const currentCount = currentCounts[color][type] || 0
+        const capturedCount = initialCount - currentCount
+        if (capturedCount > 0) {
+          for (let i = 0; i < capturedCount; i++) {
+            newCaptured[color].push(type)
+          }
+        }
+      })
+    })
+
+    setCapturedPieces(newCaptured)
+  }, [gameState?.board])
+
+  const getGameOverMessage = () => {
+    if (gameState.checkmate) {
+      const playerLost = gameState.turn === playingAsColor
+      if (opponentType === 'ai') {
+        return {
+          title: playerLost ? 'You Lost!' : 'You Won!',
+          message: playerLost ? 'Checkmate! The AI has defeated you.' : 'Checkmate! You defeated the AI!',
+          color: playerLost ? 'text-red-600' : 'text-green-600',
+          bg: playerLost ? 'bg-red-50' : 'bg-green-50'
+        }
+      } else if (opponentType === 'online_friend') {
+        return {
+          title: playerLost ? 'You Lost!' : 'You Won!',
+          message: playerLost ? 'Checkmate! Your opponent has defeated you.' : 'Checkmate! You defeated your opponent!',
+          color: playerLost ? 'text-red-600' : 'text-green-600',
+          bg: playerLost ? 'bg-red-50' : 'bg-green-50'
+        }
+      } else {
+        const winner = playerLost ? (playingAsColor === 'w' ? 'Black' : 'White') : (playingAsColor === 'w' ? 'White' : 'Black')
+        return {
+          title: `${winner} Wins!`,
+          message: 'Checkmate!',
+          color: 'text-blue-600',
+          bg: 'bg-blue-50'
+        }
+      }
+    } else if (gameState.stalemate) {
+      return {
+        title: 'Stalemate!',
+        message: 'The game ended in a draw due to stalemate.',
+        color: 'text-yellow-600',
+        bg: 'bg-yellow-50'
+      }
+    } else if (gameState.threefoldRepetition) {
+      return {
+        title: 'Draw!',
+        message: 'The game ended in a draw due to threefold repetition.',
+        color: 'text-yellow-600',
+        bg: 'bg-yellow-50'
+      }
+    } else if (gameState.insufficient_material) {
+      return {
+        title: 'Draw!',
+        message: 'The game ended in a draw due to insufficient material.',
+        color: 'text-yellow-600',
+        bg: 'bg-yellow-50'
+      }
+    } else if (gameState.draw) {
+      return {
+        title: 'Draw!',
+        message: 'The game ended in a draw.',
+        color: 'text-yellow-600',
+        bg: 'bg-yellow-50'
+      }
+    }
+    return null
+  }
+
+  const getTurnStatus = () => {
+    if (gameState.gameOver) {
+      const gameOverMsg = getGameOverMessage()
+      if (gameOverMsg) {
+        return {
+          text: gameOverMsg.title,
+          color: gameOverMsg.color,
+          bg: gameOverMsg.bg,
+          message: gameOverMsg.message
+        }
+      }
+      return {
+        text: 'Game Over',
+        color: 'text-gray-600',
+        bg: 'bg-gray-50',
+        message: 'The game has ended.'
+      }
+    }
+
+    if (isOnlineGame) {
+      if (!opponentConnected) {
+        return {
+          text: 'Waiting for opponent...',
+          color: 'text-yellow-600',
+          bg: 'bg-yellow-50',
+          message: null
+        }
+      }
+      const turnColor = gameState.turn === 'w' ? 'White' : 'Black'
+      if (isMyTurn) {
+        return {
+          text: `Your turn (${turnColor})`,
+          color: 'text-green-600',
+          bg: 'bg-green-50',
+          message: null
+        }
+      } else {
+        return {
+          text: `Opponent's turn (${turnColor})`,
+          color: 'text-gray-600',
+          bg: 'bg-gray-50',
+          message: null
+        }
+      }
+    }
+
+    if (isAITurn && isThinking) {
+      return {
+        text: 'AI is thinking...',
+        color: 'text-blue-600',
+        bg: 'bg-blue-50',
+        message: null
+      }
+    }
+
+    const turnColor = gameState.turn === 'w' ? 'White' : 'Black'
+    const isPlayerTurn = gameState.turn === playingAsColor
+    return {
+      text: `${turnColor} to move`,
+      color: isPlayerTurn ? 'text-green-600' : 'text-gray-600',
+      bg: isPlayerTurn ? 'bg-green-50' : 'bg-gray-50',
+      message: null
+    }
+  }
+
+  const turnStatus = getTurnStatus()
+
+  // Sort captured pieces by value (most valuable first)
+  const pieceOrder = ['q', 'r', 'b', 'n', 'p']
+  const sortCaptured = (pieces) => {
+    return pieces.sort((a, b) => {
+      const aIndex = pieceOrder.indexOf(a)
+      const bIndex = pieceOrder.indexOf(b)
+      return aIndex - bIndex
+    })
+  }
+
+  return (
+    <div className='w-full lg:w-64 flex-shrink-0'>
+      <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-4 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto'>
+        {/* Turn Status / Game Over */}
+        <div className={`${turnStatus.bg} ${turnStatus.color} p-3 rounded-lg text-center`}>
+          <div className='font-semibold text-lg mb-1'>{turnStatus.text}</div>
+          {turnStatus.message && (
+            <div className='text-sm opacity-90'>{turnStatus.message}</div>
+          )}
+        </div>
+
+        {/* New Game Button (when game is over) */}
+        {gameState.gameOver && onNewGame && (
+          <button
+            onClick={onNewGame}
+            className='w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+          >
+            New Game
+          </button>
+        )}
+
+        {/* Captured Pieces */}
+        <div className='space-y-3'>
+          <div>
+            <div className='text-sm font-semibold text-gray-700 mb-2'>Captured by Black</div>
+            <div className='flex flex-wrap gap-1 min-h-[40px] p-2 bg-gray-100 rounded'>
+              {sortCaptured([...capturedPieces.white]).map((piece, idx) => (
+                <div key={`white-${piece}-${idx}`} className='w-6 h-6'>
+                  <Piece type={pieceKeys[piece]} color="white" />
+                </div>
+              ))}
+              {capturedPieces.white.length === 0 && (
+                <span className='text-gray-400 text-xs self-center'>None</span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className='text-sm font-semibold text-gray-700 mb-2'>Captured by White</div>
+            <div className='flex flex-wrap gap-1 min-h-[40px] p-2 bg-gray-100 rounded'>
+              {sortCaptured([...capturedPieces.black]).map((piece, idx) => (
+                <div key={`black-${piece}-${idx}`} className='w-6 h-6'>
+                  <Piece type={pieceKeys[piece]} color="black" />
+                </div>
+              ))}
+              {capturedPieces.black.length === 0 && (
+                <span className='text-gray-400 text-xs self-center'>None</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default GameInfoPanel
+

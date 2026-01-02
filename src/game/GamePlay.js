@@ -110,8 +110,6 @@ const GamePlay = ({
           <span>AI is thinking...</span>
         </div>
       ) : null}
-
-      {getTurnIndicator()}
     </div>
   )
 }
