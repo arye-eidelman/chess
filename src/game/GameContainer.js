@@ -293,26 +293,16 @@ const GameContainer = () => {
   } else {
     return (
       <>
-        <GameSetup config={config} setConfig={setConfig} configOptions={configOptions} />
-        {config.opponent === 'online_friend' && !config.gameCode && (
-          <div className='flex flex-col items-center gap-4 mt-4'>
-            <button
-              onClick={handleCreateGame}
-              className='px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
-            >
-              Create Game
-            </button>
-            <button
-              onClick={() => {
-                setJoinError('')
-                setShowJoin(true)
-              }}
-              className='px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors'
-            >
-              Join Game
-            </button>
-          </div>
-        )}
+        <GameSetup
+          config={config}
+          setConfig={setConfig}
+          configOptions={configOptions}
+          onCreateGame={handleCreateGame}
+          onJoinGame={() => {
+            setJoinError('')
+            setShowJoin(true)
+          }}
+        />
         {showJoin && (
           <GameJoin
             onJoin={handleJoinGame}
