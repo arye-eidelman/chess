@@ -14,6 +14,7 @@ class OnlineChessAPI {
   isHost = false
   gameData = null
   unsubscribe = null
+  presenceInterval = null
 
   constructor(gameId = null) {
     this.game = new Chess()
@@ -60,7 +61,7 @@ class OnlineChessAPI {
     const api = new OnlineChessAPI(gameCode)
     api.isHost = true
     api.game = game
-    api.gameData = gameData
+    api.gameData = { ...gameData, hostLastActiveAt: gameData.lastActiveAt }
     return { api, gameCode }
   }
 
@@ -84,13 +85,49 @@ class OnlineChessAPI {
     }
 
     const gameData = snapshot.val()
+    const currentUser = auth.currentUser.uid
     
-    if (gameData.guestPlayer && gameData.guestPlayer !== auth.currentUser.uid) {
-      throw new Error('Game is full')
+    // Allow host to rejoin their own game
+    if (gameData.hostPlayer === currentUser) {
+      const api = new OnlineChessAPI(gameCode)
+      api.isHost = true
+      const game = new Chess()
+      game.load(gameData.fen)
+      api.game = game
+      api.gameData = { ...gameData, hostLastActiveAt: new Date().toISOString() }
+      api.lastMove = gameData.lastMove || null
+      
+      // Update host's presence
+      await update(gameRef, {
+        hostLastActiveAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+      })
+      
+      return api
     }
-
-    if (gameData.hostPlayer === auth.currentUser.uid) {
-      throw new Error('You are already the host of this game')
+    
+    // Allow guest to rejoin if they were already the guest
+    if (gameData.guestPlayer === currentUser) {
+      const api = new OnlineChessAPI(gameCode)
+      api.isHost = false
+      const game = new Chess()
+      game.load(gameData.fen)
+      api.game = game
+      api.gameData = { ...gameData, guestLastActiveAt: new Date().toISOString() }
+      api.lastMove = gameData.lastMove || null
+      
+      // Update guest's presence
+      await update(gameRef, {
+        guestLastActiveAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+      })
+      
+      return api
+    }
+    
+    // Check if game is full (has a guest who is not the current user)
+    if (gameData.guestPlayer && gameData.guestPlayer !== currentUser) {
+      throw new Error('Game is full')
     }
 
     // Set guest player and ensure whitePlayer is set
@@ -98,14 +135,16 @@ class OnlineChessAPI {
       // Randomly assign if not set
       const isWhite = Math.random() < 0.5
       await update(gameRef, {
-        guestPlayer: auth.currentUser.uid,
-        whitePlayer: isWhite ? auth.currentUser.uid : gameData.hostPlayer,
+        guestPlayer: currentUser,
+        whitePlayer: isWhite ? currentUser : gameData.hostPlayer,
         lastActiveAt: new Date().toISOString(),
+        guestLastActiveAt: new Date().toISOString(),
       })
     } else {
       await update(gameRef, {
-        guestPlayer: auth.currentUser.uid,
+        guestPlayer: currentUser,
         lastActiveAt: new Date().toISOString(),
+        guestLastActiveAt: new Date().toISOString(),
       })
     }
 
@@ -114,7 +153,7 @@ class OnlineChessAPI {
     const game = new Chess()
     game.load(gameData.fen)
     api.game = game
-    api.gameData = gameData
+    api.gameData = { ...gameData, guestLastActiveAt: gameData.lastActiveAt }
     api.lastMove = gameData.lastMove || null
     return api
   }
@@ -149,7 +188,7 @@ class OnlineChessAPI {
     const state = this.state()
     const gameRef = ref(db, `games/${this.gameId}`)
     
-    await update(gameRef, {
+    const updateData = {
       fen: this.game.fen(),
       board: this.game.board(),
       turn: this.game.turn(),
@@ -162,7 +201,16 @@ class OnlineChessAPI {
       insufficient_material: this.game.insufficient_material(),
       lastMove: this.lastMove,
       lastActiveAt: new Date().toISOString(),
-    })
+    }
+
+    // Also update player-specific lastActiveAt
+    if (this.isHost) {
+      updateData.hostLastActiveAt = new Date().toISOString()
+    } else {
+      updateData.guestLastActiveAt = new Date().toISOString()
+    }
+    
+    await update(gameRef, updateData)
 
     // Trigger callbacks
     this.onChangeCallbacks.forEach(callback => callback(state))
@@ -191,6 +239,49 @@ class OnlineChessAPI {
           this.onChangeCallbacks.forEach(cb => cb(state))
         }
       })
+
+      // Start presence heartbeat - update lastActiveAt every 10 seconds
+      this.startPresenceHeartbeat()
+    }
+  }
+
+  startPresenceHeartbeat() {
+    if (this.presenceInterval) return
+
+    // Update presence immediately
+    this.updatePresence()
+
+    // Then update every 10 seconds
+    this.presenceInterval = setInterval(() => {
+      this.updatePresence()
+    }, 10000)
+  }
+
+  async updatePresence() {
+    if (!this.gameId) return
+
+    const gameRef = ref(db, `games/${this.gameId}`)
+    const currentUser = auth.currentUser
+    if (!currentUser) return
+
+    try {
+      // Update lastActiveAt for the current player
+      const updateData = {}
+      if (this.isHost) {
+        updateData.hostLastActiveAt = new Date().toISOString()
+      } else {
+        updateData.guestLastActiveAt = new Date().toISOString()
+      }
+      await update(gameRef, updateData)
+    } catch (error) {
+      console.error('Error updating presence:', error)
+    }
+  }
+
+  stopPresenceHeartbeat() {
+    if (this.presenceInterval) {
+      clearInterval(this.presenceInterval)
+      this.presenceInterval = null
     }
   }
 
@@ -201,6 +292,30 @@ class OnlineChessAPI {
 
     const gameData = this.gameData || {}
     const isWhite = gameData?.whitePlayer === auth.currentUser.uid
+    const currentUser = auth.currentUser
+
+    // Determine if opponent is online based on lastActiveAt
+    let opponentOnline = false
+    if (gameData?.guestPlayer) {
+      // Opponent has joined
+      if (this.isHost) {
+        // We're host, check guest's last active time
+        const guestLastActive = gameData.guestLastActiveAt || gameData.lastActiveAt
+        if (guestLastActive) {
+          const timeSinceActive = Date.now() - new Date(guestLastActive).getTime()
+          // Consider online if active within last 30 seconds
+          opponentOnline = timeSinceActive < 30000
+        }
+      } else {
+        // We're guest, check host's last active time
+        const hostLastActive = gameData.hostLastActiveAt || gameData.lastActiveAt
+        if (hostLastActive) {
+          const timeSinceActive = Date.now() - new Date(hostLastActive).getTime()
+          // Consider online if active within last 30 seconds
+          opponentOnline = timeSinceActive < 30000
+        }
+      }
+    }
 
     return {
       fen: this.game.fen(),
@@ -227,6 +342,7 @@ class OnlineChessAPI {
       lastMove: this.lastMove,
       isMyTurn: this.game.turn() === (isWhite ? 'w' : 'b'),
       opponentConnected: gameData?.guestPlayer ? true : false,
+      opponentOnline: opponentOnline,
     }
   }
 

@@ -8,10 +8,12 @@ const GameInfoPanel = ({
   isOnlineGame, 
   isMyTurn, 
   opponentConnected,
+  opponentOnline,
   isAITurn,
   isThinking,
   opponentType,
-  onNewGame
+  onNewGame,
+  onShareGame
 }) => {
   const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] })
 
@@ -193,6 +195,37 @@ const GameInfoPanel = ({
   return (
     <div className='w-full md:w-64 flex-shrink-0 max-w-full'>
       <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-2 md:p-4 space-y-2 md:space-y-4 max-h-[min(calc(100vh-4rem),600px)] overflow-y-auto'>
+        {/* Opponent Online Status (for online games) */}
+        {isOnlineGame && opponentConnected && (
+          <div className={`flex items-center justify-center gap-2 p-2 md:p-3 rounded-lg ${
+            opponentOnline 
+              ? 'text-green-700' 
+              : 'text-gray-600'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              opponentOnline 
+                ? 'bg-green-500 animate-pulse' 
+                : 'bg-gray-400'
+            }`}></div>
+            <span className='text-xs md:text-sm font-medium'>
+              {opponentOnline ? 'Opponent online' : 'Opponent offline'}
+            </span>
+          </div>
+        )}
+
+        {/* Share Game Button (when opponent is offline) */}
+        {isOnlineGame && opponentConnected && !opponentOnline && !gameState.gameOver && onShareGame && (
+          <button
+            onClick={onShareGame}
+            className='w-full px-3 md:px-4 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg text-sm md:text-base font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2'
+          >
+            <svg className='w-4 h-4 md:w-5 md:h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8.684 13.688l1.281-1.281m0 0l5.25-5.25m-5.25 5.25l-5.25 5.25M3.75 21.75h16.5a2.25 2.25 0 002.25-2.25V4.5a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 4.5v15.25a2.25 2.25 0 002.25 2.25z' />
+            </svg>
+            Share Game to Rejoin
+          </button>
+        )}
+
         {/* Turn Status / Game Over */}
         <div className={`${turnStatus.bg} ${turnStatus.color} p-2 md:p-3 rounded-lg text-center`}>
           <div className='font-semibold text-sm md:text-lg mb-0.5 md:mb-1'>{turnStatus.text}</div>

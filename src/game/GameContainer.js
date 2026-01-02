@@ -44,7 +44,9 @@ const GameContainer = () => {
 
   // const [gameId, setGameId] = useState(null)
   const [gameState, setGameState] = useState(null)
-  const readytoJoinGame = useRef(!config.opponent && !gameState);
+  const readytoJoinGame = useRef(!config?.opponent && !gameState);
+  const previousOpponentConnected = useRef(false);
+  const shareOpenedManually = useRef(false);
 
   // Check URL for game code (only on initial mount)
   useEffect(() => {
@@ -57,11 +59,21 @@ const GameContainer = () => {
     }
   }, []) // Only run once on mount
 
-  // Close share dialog when opponent joins
+  // Close share dialog only when opponent transitions from disconnected to connected
+  // Don't close if the dialog was opened manually for rejoin
   useEffect(() => {
-    if (config.opponent === 'online_friend' && gameState?.opponentConnected && showShare) {
+    const currentlyConnected = gameState?.opponentConnected || false
+    const wasConnected = previousOpponentConnected.current
+    
+    // Only close if opponent just connected (transition from false to true)
+    // AND the dialog wasn't opened manually for rejoin
+    if (config.opponent === 'online_friend' && !wasConnected && currentlyConnected && showShare && !shareOpenedManually.current) {
       setShowShare(false)
+      shareOpenedManually.current = false
     }
+    
+    // Update the ref for next comparison
+    previousOpponentConnected.current = currentlyConnected
   }, [gameState?.opponentConnected, config.opponent, showShare])
 
   useEffect(() => {
@@ -112,15 +124,44 @@ const GameContainer = () => {
             api.onChange(setGameState)
           } catch (error) {
             console.error('Error initializing online game:', error)
-            setJoinError(error.message || 'Failed to join game')
-            setJoinError('')
-            setShowJoin(true)
+            const errorMessage = error.message || 'Failed to join game'
+            setJoinError(errorMessage)
+            
+            // Check if this was a URL-based join attempt
+            const urlParams = new URLSearchParams(window.location.search)
+            const gameCodeFromUrl = urlParams.get('game')
+            const isUrlJoin = gameCodeFromUrl && config.gameCode === gameCodeFromUrl
+            
+            if (isUrlJoin) {
+              // URL join failed - reset config to show setup screen (user can try again)
+              setConfig({ opponent: 'online_friend' })
+            } else if (!showJoin) {
+              // Manual join attempt that failed - show join dialog with error
+              // Only if join dialog isn't already showing
+              setShowJoin(true)
+            }
+            // If showJoin is already true, the error is already displayed in the dialog
           }
         }
         initializeOnlineGame()
       }
     }
+
+    // Cleanup function
+    return () => {
+      // Cleanup will be handled by the chessAPI state cleanup
+      // The presence heartbeat will stop when a new API is created
+    }
   }, [config])
+
+  // Cleanup presence heartbeat when chessAPI changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (chessAPI && chessAPI.stopPresenceHeartbeat) {
+        chessAPI.stopPresenceHeartbeat()
+      }
+    }
+  }, [chessAPI])
 
   const xyToPosition = ({ x, y }) => gameState.SQUARES[y * 8 + x]
   const positionToXY = (position) => {
@@ -218,6 +259,10 @@ const GameContainer = () => {
       setConfig({ opponent: 'online_friend', gameCode })
       setShowJoin(false)
       setIsJoining(false)
+      // Clear URL if present since we're now in the game
+      if (window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname)
+      }
     } catch (error) {
       setJoinError(error.message || 'Failed to join game')
       setIsJoining(false)
@@ -260,7 +305,10 @@ const GameContainer = () => {
             {config.opponent === 'online_friend' && chessAPI && !gameState.gameOver && !gameState.opponentConnected && (
               <div className='text-center'>
                 <button
-                  onClick={() => setShowShare(true)}
+                  onClick={() => {
+                    shareOpenedManually.current = false
+                    setShowShare(true)
+                  }}
                   className='px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
                 >
                   Share Game
@@ -275,16 +323,24 @@ const GameContainer = () => {
             isOnlineGame={config.opponent === 'online_friend'}
             isMyTurn={gameState.isMyTurn}
             opponentConnected={gameState.opponentConnected}
+            opponentOnline={gameState.opponentOnline}
             isAITurn={config.opponent === 'ai' && gameState.isAITurn}
             isThinking={config.opponent === 'ai' && gameState.isThinking}
             opponentType={config.opponent}
             onNewGame={handleNewGame}
+            onShareGame={chessAPI && config.gameCode ? () => {
+              shareOpenedManually.current = true
+              setShowShare(true)
+            } : undefined}
           />
           {showShare && chessAPI && (
             <GameShare
               gameCode={config.gameCode}
               shareableLink={chessAPI.getShareableLink()}
-              onClose={() => setShowShare(false)}
+              onClose={() => {
+                shareOpenedManually.current = false
+                setShowShare(false)
+              }}
             />
           )}
         </div>
