@@ -1,3 +1,4 @@
+import LocalChessAPI from './LocalChessAPI.js'
 import { getDatabase, ref, set, update, onValue, get } from "firebase/database";
 import { getAuth } from "firebase/auth";
 import Chess from 'chess.js'
@@ -6,7 +7,7 @@ import '../firebaseInit.js'
 const auth = getAuth();
 const db = getDatabase();
 
-class OnlineChessAPI {
+class OnlineChessAPI extends LocalChessAPI {
   onChangeCallbacks = []
   gameId = null
   game = null
@@ -17,7 +18,7 @@ class OnlineChessAPI {
   presenceInterval = null
 
   constructor(gameId = null) {
-    this.game = new Chess()
+    super()
     this.gameId = gameId
   }
 
@@ -54,6 +55,7 @@ class OnlineChessAPI {
       threefoldRepetition: game.in_threefold_repetition(),
       insufficient_material: game.insufficient_material(),
       lastMove: null,
+      moveHistory: [], // Initialize empty move history
     }
 
     await set(ref(db, `games/${gameCode}`), gameData)
@@ -92,7 +94,14 @@ class OnlineChessAPI {
       const api = new OnlineChessAPI(gameCode)
       api.isHost = true
       const game = new Chess()
-      game.load(gameData.fen)
+      // Reconstruct game from move history if available
+      if (gameData.moveHistory && Array.isArray(gameData.moveHistory) && gameData.moveHistory.length > 0) {
+        gameData.moveHistory.forEach(move => {
+          game.move(move)
+        })
+      } else {
+        game.load(gameData.fen)
+      }
       api.game = game
       api.gameData = { ...gameData, hostLastActiveAt: new Date().toISOString() }
       api.lastMove = gameData.lastMove || null
@@ -111,7 +120,14 @@ class OnlineChessAPI {
       const api = new OnlineChessAPI(gameCode)
       api.isHost = false
       const game = new Chess()
-      game.load(gameData.fen)
+      // Reconstruct game from move history if available
+      if (gameData.moveHistory && Array.isArray(gameData.moveHistory) && gameData.moveHistory.length > 0) {
+        gameData.moveHistory.forEach(move => {
+          game.move(move)
+        })
+      } else {
+        game.load(gameData.fen)
+      }
       api.game = game
       api.gameData = { ...gameData, guestLastActiveAt: new Date().toISOString() }
       api.lastMove = gameData.lastMove || null
@@ -151,7 +167,14 @@ class OnlineChessAPI {
     const api = new OnlineChessAPI(gameCode)
     api.isHost = false
     const game = new Chess()
-    game.load(gameData.fen)
+    // Reconstruct game from move history if available
+    if (gameData.moveHistory && Array.isArray(gameData.moveHistory) && gameData.moveHistory.length > 0) {
+      gameData.moveHistory.forEach(move => {
+        game.move(move)
+      })
+    } else {
+      game.load(gameData.fen)
+    }
     api.game = game
     api.gameData = { ...gameData, guestLastActiveAt: gameData.lastActiveAt }
     api.lastMove = gameData.lastMove || null
@@ -188,6 +211,9 @@ class OnlineChessAPI {
     const state = this.state()
     const gameRef = ref(db, `games/${this.gameId}`)
     
+    // Store move history as array of moves in UCI format (e.g., "e2e4")
+    const moveHistory = this.game.history({ verbose: false })
+    
     const updateData = {
       fen: this.game.fen(),
       board: this.game.board(),
@@ -200,6 +226,7 @@ class OnlineChessAPI {
       threefoldRepetition: this.game.in_threefold_repetition(),
       insufficient_material: this.game.insufficient_material(),
       lastMove: this.lastMove,
+      moveHistory: moveHistory, // Store full move history
       lastActiveAt: new Date().toISOString(),
     }
 
@@ -231,7 +258,17 @@ class OnlineChessAPI {
           // Update game state from Firebase
           const newFen = gameData.fen
           if (newFen && newFen !== oldFen) {
-            this.game.load(newFen)
+            // Reconstruct game from move history if available (preserves history for undo)
+            if (gameData.moveHistory && Array.isArray(gameData.moveHistory) && gameData.moveHistory.length > 0) {
+              // Reconstruct by replaying all moves
+              this.game.reset()
+              gameData.moveHistory.forEach(move => {
+                this.game.move(move)
+              })
+            } else {
+              // Fallback to loading FEN (loses history)
+              this.game.load(newFen)
+            }
             this.lastMove = gameData.lastMove || null
           }
           // Always trigger state update to sync opponent connection status and other metadata
@@ -317,32 +354,23 @@ class OnlineChessAPI {
       }
     }
 
+    const baseState = super.state()
     return {
-      fen: this.game.fen(),
-      board: this.game.board(),
-      SQUARES: this.game.SQUARES || [
-        'a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8',
-        'a7', 'b7', 'c7', 'd7', 'e7', 'f7', 'g7', 'h7',
-        'a6', 'b6', 'c6', 'd6', 'e6', 'f6', 'g6', 'h6',
-        'a5', 'b5', 'c5', 'd5', 'e5', 'f5', 'g5', 'h5',
-        'a4', 'b4', 'c4', 'd4', 'e4', 'f4', 'g4', 'h4',
-        'a3', 'b3', 'c3', 'd3', 'e3', 'f3', 'g3', 'h3',
-        'a2', 'b2', 'c2', 'd2', 'e2', 'f2', 'g2', 'h2',
-        'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1'
-      ],
-      turn: this.game.turn(),
+      ...baseState,
       playingAsColor: isWhite ? 'w' : 'b',
-      gameOver: this.game.game_over(),
-      check: this.game.in_check(),
-      checkmate: this.game.in_checkmate(),
-      draw: this.game.in_draw(),
-      stalemate: this.game.in_stalemate(),
-      threefoldRepetition: this.game.in_threefold_repetition(),
-      insufficient_material: this.game.insufficient_material(),
-      lastMove: this.lastMove,
+      gameOver: gameData?.gameOver || this.game.game_over(),
+      draw: gameData?.draw || this.game.in_draw(),
+      
       isMyTurn: this.game.turn() === (isWhite ? 'w' : 'b'),
       opponentConnected: gameData?.guestPlayer ? true : false,
       opponentOnline: opponentOnline,
+      drawOffered: !!gameData?.drawOfferedBy,
+      drawOfferedBy: gameData?.drawOfferedBy,
+      undoRequested: !!gameData?.undoRequestedBy,
+      undoRequestedBy: gameData?.undoRequestedBy,
+      resigned: gameData?.resigned || false,
+      resignedBy: gameData?.resignedBy,
+      currentUserId: currentUser?.uid,
     }
   }
 
@@ -357,6 +385,207 @@ class OnlineChessAPI {
   getShareableLink() {
     if (!this.gameId) return null
     return `${window.location.origin}${window.location.pathname}?game=${this.gameId}`
+  }
+
+  // Resign the game
+  async resign() {
+    if (!this.gameId) return
+    const gameRef = ref(db, `games/${this.gameId}`)
+    const currentUser = auth.currentUser.uid
+    const isWhite = this.gameData?.whitePlayer === currentUser
+    const resignedColor = isWhite ? 'w' : 'b' // Store color, not user ID
+    
+    await update(gameRef, {
+      gameOver: true,
+      resigned: true,
+      resignedBy: resignedColor, // Store color ('w' or 'b')
+      checkmate: true, // Mark as checkmate so the opponent wins
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    // Update local state
+    const state = this.state()
+    state.gameOver = true
+    state.resigned = true
+    state.resignedBy = resignedColor // Store color
+    state.checkmate = true
+    this.onChangeCallbacks.forEach(callback => callback(state))
+  }
+
+  // Offer draw
+  async offerDraw() {
+    if (!this.gameId) return
+    const gameRef = ref(db, `games/${this.gameId}`)
+    const currentUser = auth.currentUser.uid
+    
+    await update(gameRef, {
+      drawOfferedBy: currentUser,
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    // Update local state
+    const state = this.state()
+    state.drawOffered = true
+    state.drawOfferedBy = currentUser
+    this.onChangeCallbacks.forEach(callback => callback(state))
+  }
+
+  // Accept draw
+  async acceptDraw() {
+    if (!this.gameId) return
+    const gameRef = ref(db, `games/${this.gameId}`)
+    
+    await update(gameRef, {
+      gameOver: true,
+      draw: true,
+      drawAccepted: true,
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    // Update local state
+    const state = this.state()
+    state.gameOver = true
+    state.draw = true
+    state.drawAccepted = true
+    this.onChangeCallbacks.forEach(callback => callback(state))
+  }
+
+  // Request undo (for online games)
+  async requestUndo() {
+    if (!this.gameId) return
+    const gameRef = ref(db, `games/${this.gameId}`)
+    const currentUser = auth.currentUser.uid
+    
+    await update(gameRef, {
+      undoRequestedBy: currentUser,
+      lastActiveAt: new Date().toISOString(),
+    })
+    
+    // Update local state
+    const state = this.state()
+    state.undoRequested = true
+    state.undoRequestedBy = currentUser
+    this.onChangeCallbacks.forEach(callback => callback(state))
+  }
+
+  // Accept undo request (for online games)
+  async acceptUndo() {
+    try {
+      // Wait for auth to be ready
+      if (!auth.currentUser) {
+        await new Promise((resolve) => {
+          const unsubscribe = auth.onAuthStateChanged((user) => {
+            unsubscribe()
+            resolve()
+          })
+        })
+      }
+      
+      if (!this.gameId) {
+        console.error('acceptUndo: No gameId')
+        return
+      }
+      
+      const gameRef = ref(db, `games/${this.gameId}`)
+      
+      // Get current game data
+      const snapshot = await get(ref(db, `games/${this.gameId}`))
+      const gameData = snapshot.val()
+      
+      if (!gameData) {
+        console.error('acceptUndo: No game data')
+        return
+      }
+      
+      // Check if undo was requested by opponent
+      if (!gameData.undoRequestedBy) {
+        console.log('acceptUndo: No undo requested')
+        return
+      }
+      
+      const currentUser = auth.currentUser
+      if (!currentUser || !currentUser.uid) {
+        console.error('acceptUndo: No current user after waiting')
+        return
+      }
+      
+      const currentUserId = currentUser.uid
+      const undoRequestedBy = gameData.undoRequestedBy
+      
+      console.log('acceptUndo:', { currentUserId, undoRequestedBy })
+      
+      // Only allow accepting if opponent requested it
+      if (undoRequestedBy === currentUserId) {
+        console.log('acceptUndo: Cannot accept own request')
+        return // Can't accept your own request
+      }
+      
+      // Determine how many moves to undo
+      // If the requester moved last, only undo one move. Otherwise, undo two moves.
+      const isWhite = gameData.whitePlayer === undoRequestedBy
+      const currentTurn = this.game.turn() // 'w' means it's white's turn (black just moved), 'b' means it's black's turn (white just moved)
+      const requesterMovedLast = (isWhite && currentTurn === 'b') || (!isWhite && currentTurn === 'w')
+      
+      if (this.game.history().length === 0) {
+        console.log('acceptUndo: No moves to undo')
+        return
+      }
+      
+      console.log('acceptUndo: Performing undo, history length:', this.game.history().length, 'requesterMovedLast:', requesterMovedLast)
+      
+      // Undo the requester's move
+      this.game.undo()
+      
+      // If the requester didn't move last, also undo the opponent's move
+      if (!requesterMovedLast && this.game.history().length > 0) {
+        this.game.undo()
+      }
+      
+      // Update lastMove based on remaining history
+      const history = this.game.history({ verbose: true })
+      this.lastMove = history.length > 0 ? {
+        from: history[history.length - 1].from,
+        to: history[history.length - 1].to
+      } : null
+      
+      // Update Firebase with new game state
+      const moveHistory = this.game.history({ verbose: false })
+      const updateData = {
+        fen: this.game.fen(),
+        board: this.game.board(),
+        turn: this.game.turn(),
+        lastMove: this.lastMove,
+        moveHistory: moveHistory, // Update move history after undo
+        undoRequestedBy: null, // Clear undo request
+        lastActiveAt: new Date().toISOString(),
+      }
+      
+      // Also update player-specific lastActiveAt
+      if (this.isHost) {
+        updateData.hostLastActiveAt = new Date().toISOString()
+      } else {
+        updateData.guestLastActiveAt = new Date().toISOString()
+      }
+      
+      console.log('acceptUndo: Updating Firebase with:', updateData)
+      await update(gameRef, updateData)
+      
+      // Update local gameData immediately
+      if (this.gameData) {
+        this.gameData.fen = this.game.fen()
+        this.gameData.board = this.game.board()
+        this.gameData.turn = this.game.turn()
+        this.gameData.lastMove = this.lastMove
+        this.gameData.undoRequestedBy = null
+      }
+      
+      // Update local state
+      const state = this.state()
+      console.log('acceptUndo: Updated state:', state)
+      this.onChangeCallbacks.forEach(callback => callback(state))
+    } catch (error) {
+      console.error('acceptUndo error:', error)
+    }
   }
 }
 

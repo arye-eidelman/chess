@@ -332,6 +332,19 @@ const GameContainer = () => {
               shareOpenedManually.current = true
               setShowShare(true)
             } : undefined}
+            onResign={chessAPI ? () => chessAPI.resign() : undefined}
+            onOfferDraw={chessAPI ? () => chessAPI.offerDraw() : undefined}
+            onAcceptDraw={chessAPI && config.opponent === 'online_friend' && gameState.drawOffered && gameState.drawOfferedBy && gameState.currentUserId && gameState.drawOfferedBy !== gameState.currentUserId ? () => chessAPI.acceptDraw() : undefined}
+            onUndo={chessAPI && (config.opponent === 'local' || config.opponent === 'ai') ? () => chessAPI.undo() : undefined}
+            onRequestUndo={chessAPI && config.opponent === 'online_friend' ? () => chessAPI.requestUndo() : undefined}
+            onAcceptUndo={chessAPI && config.opponent === 'online_friend' ? async () => {
+              console.log('Accept undo clicked')
+              try {
+                await chessAPI.acceptUndo()
+              } catch (error) {
+                console.error('Error accepting undo:', error)
+              }
+            } : undefined}
           />
           {showShare && chessAPI && (
             <GameShare

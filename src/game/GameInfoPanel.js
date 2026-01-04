@@ -2,18 +2,24 @@ import React, { useEffect, useState } from 'react'
 import Piece from './Piece.js'
 import { pieceKeys } from './constants.js'
 
-const GameInfoPanel = ({ 
-  gameState, 
-  playingAsColor, 
-  isOnlineGame, 
-  isMyTurn, 
+const GameInfoPanel = ({
+  gameState,
+  playingAsColor,
+  isOnlineGame,
+  isMyTurn,
   opponentConnected,
   opponentOnline,
   isAITurn,
   isThinking,
   opponentType,
   onNewGame,
-  onShareGame
+  onShareGame,
+  onResign,
+  onOfferDraw,
+  onAcceptDraw,
+  onUndo,
+  onRequestUndo,
+  onAcceptUndo
 }) => {
   const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] })
 
@@ -41,24 +47,51 @@ const GameInfoPanel = ({
 
     // Calculate captured pieces
     const newCaptured = { white: [], black: [] }
-    ;['white', 'black'].forEach(color => {
-      Object.keys(initialCounts[color]).forEach(type => {
-        const initialCount = initialCounts[color][type]
-        const currentCount = currentCounts[color][type] || 0
-        const capturedCount = initialCount - currentCount
-        if (capturedCount > 0) {
-          for (let i = 0; i < capturedCount; i++) {
-            newCaptured[color].push(type)
+      ;['white', 'black'].forEach(color => {
+        Object.keys(initialCounts[color]).forEach(type => {
+          const initialCount = initialCounts[color][type]
+          const currentCount = currentCounts[color][type] || 0
+          const capturedCount = initialCount - currentCount
+          if (capturedCount > 0) {
+            for (let i = 0; i < capturedCount; i++) {
+              newCaptured[color].push(type)
+            }
           }
-        }
+        })
       })
-    })
 
     setCapturedPieces(newCaptured)
   }, [gameState?.board])
 
   const getGameOverMessage = () => {
-    if (gameState.checkmate) {
+    // Handle resignation first
+    if (gameState.resigned) {
+      const playerResigned = gameState.resignedBy === playingAsColor
+      if (opponentType === 'ai') {
+        return {
+          title: playerResigned ? 'You Lost!' : 'You Won!',
+          message: playerResigned ? 'You resigned. The AI wins!' : 'Your opponent resigned. You win!',
+          color: playerResigned ? 'text-red-600' : 'text-green-600',
+          bg: playerResigned ? 'bg-red-50' : 'bg-green-50'
+        }
+      } else if (opponentType === 'online_friend') {
+        return {
+          title: playerResigned ? 'You Lost!' : 'You Won!',
+          message: playerResigned ? 'You resigned. Your opponent wins!' : 'Your opponent resigned. You win!',
+          color: playerResigned ? 'text-red-600' : 'text-green-600',
+          bg: playerResigned ? 'bg-red-50' : 'bg-green-50'
+        }
+      } else {
+        const winner = gameState.resignedBy === 'w' ? 'Black' : 'White'
+        const loser = gameState.resignedBy === 'w' ? 'White' : 'Black'
+        return {
+          title: `${winner} Wins!`,
+          message: `${loser} resigned.`,
+          color: 'text-blue-600',
+          bg: 'bg-blue-50'
+        }
+      }
+    } else if (gameState.checkmate) {
       const playerLost = gameState.turn === playingAsColor
       if (opponentType === 'ai') {
         return {
@@ -197,16 +230,14 @@ const GameInfoPanel = ({
       <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-2 md:p-4 space-y-2 md:space-y-4 max-h-[min(calc(100vh-4rem),600px)] overflow-y-auto'>
         {/* Opponent Online Status (for online games) */}
         {isOnlineGame && opponentConnected && (
-          <div className={`flex items-center justify-center gap-2 p-2 md:p-3 rounded-lg ${
-            opponentOnline 
-              ? 'text-green-700' 
-              : 'text-gray-600'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              opponentOnline 
-                ? 'bg-green-500 animate-pulse' 
-                : 'bg-gray-400'
-            }`}></div>
+          <div className={`flex items-center justify-center gap-2 p-2 md:p-3 rounded-lg ${opponentOnline
+            ? 'text-green-700'
+            : 'text-gray-600'
+            }`}>
+            <div className={`w-2 h-2 rounded-full ${opponentOnline
+              ? 'bg-green-500 animate-pulse'
+              : 'bg-gray-400'
+              }`}></div>
             <span className='text-xs md:text-sm font-medium'>
               {opponentOnline ? 'Opponent online' : 'Opponent offline'}
             </span>
@@ -242,6 +273,125 @@ const GameInfoPanel = ({
           >
             New Game
           </button>
+        )}
+
+        {/* Game Actions Menu (when game is active) */}
+        {!gameState.gameOver && (
+          <div className='space-y-2'>
+            <div className='text-xs md:text-sm font-semibold text-gray-700 mb-1'>Game Actions</div>
+            <div className='flex flex-col gap-1.5 md:gap-2'>
+              {/* Resign Button */}
+              {onResign && (
+                <button
+                  onClick={onResign}
+                  className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-red-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-red-700 transition-colors'
+                >
+                  Resign
+                </button>
+              )}
+
+              {/* Draw Offer/Accept */}
+              {isOnlineGame ? (
+                <>
+                  {gameState.drawOffered && gameState.drawOfferedBy && gameState.currentUserId && gameState.drawOfferedBy !== gameState.currentUserId && onAcceptDraw ? (
+                    <div className='space-y-1.5'>
+                      <div className='text-xs text-yellow-700 bg-yellow-50 p-2 rounded'>Opponent offered a draw</div>
+                      <button
+                        onClick={onAcceptDraw}
+                        className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-green-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-green-700 transition-colors'
+                      >
+                        Accept Draw
+                      </button>
+                    </div>
+                  ) : (
+                    onOfferDraw && !gameState.drawOffered && (
+                      <button
+                        onClick={onOfferDraw}
+                        className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-yellow-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-yellow-700 transition-colors'
+                      >
+                        Offer Draw
+                      </button>
+                    )
+                  )}
+                </>
+              ) : (
+                onOfferDraw && (
+                  <button
+                    onClick={onOfferDraw}
+                    className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-yellow-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-yellow-700 transition-colors'
+                  >
+                    Draw
+                  </button>
+                )
+              )}
+
+              {/* Undo Button */}
+              {opponentType === 'ai' ? (
+                onUndo && (
+                  <button
+                    onClick={onUndo}
+                    disabled={!gameState.lastMove}
+                    className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    Undo
+                  </button>
+                )
+              ) : isOnlineGame ? (
+                <>
+                  {(() => {
+                    const shouldShowAccept = gameState.undoRequested &&
+                      gameState.undoRequestedBy &&
+                      gameState.currentUserId &&
+                      gameState.undoRequestedBy !== gameState.currentUserId &&
+                      onAcceptUndo
+                    if (gameState.undoRequested) {
+                      console.log('Undo requested state:', {
+                        undoRequested: gameState.undoRequested,
+                        undoRequestedBy: gameState.undoRequestedBy,
+                        currentUserId: gameState.currentUserId,
+                        shouldShowAccept,
+                        onAcceptUndo: !!onAcceptUndo
+                      })
+                    }
+                    return shouldShowAccept ? (
+                      <div className='space-y-1.5'>
+                        <div className='text-xs text-blue-700 bg-blue-50 p-2 rounded'>Opponent requested undo</div>
+                        <button
+                          onClick={() => {
+                            console.log('Accept undo button clicked')
+                            onAcceptUndo()
+                          }}
+                          className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-green-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-green-700 transition-colors'
+                        >
+                          Accept Undo
+                        </button>
+                      </div>
+                    ) : (
+                      onRequestUndo && !gameState.undoRequested && (
+                        <button
+                          onClick={onRequestUndo}
+                          disabled={!gameState || !gameState.lastMove || (gameState.isMyTurn && gameState.moveHistory.length === 1)}
+                          className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                        >
+                          Request Undo
+                        </button>
+                      )
+                    )
+                  })()}
+                </>
+              ) : (
+                onUndo && (
+                  <button
+                    onClick={onUndo}
+                    disabled={!gameState.lastMove}
+                    className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    Undo
+                  </button>
+                )
+              )}
+            </div>
+          </div>
         )}
 
         {/* Captured Pieces */}
