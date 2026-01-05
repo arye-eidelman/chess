@@ -53,8 +53,9 @@ const GameContainer = () => {
     if (readytoJoinGame.current) {
       const urlParams = new URLSearchParams(window.location.search)
       const gameCode = urlParams.get('game')
+      const joinAsPlayer = urlParams.get('joinAs')
       if (gameCode) {
-        setConfig({ opponent: 'online_friend', gameCode })
+        setConfig({ opponent: 'online_friend', gameCode, joinAsPlayer })
       }
     }
   }, []) // Only run once on mount
@@ -110,7 +111,7 @@ const GameContainer = () => {
             let api
             if (config.gameCode) {
               // Joining existing game
-              api = await OnlineChessAPI.joinGame(config.gameCode)
+              api = await OnlineChessAPI.joinGame(config.gameCode, config.joinAsPlayer)
             } else {
               // Creating new game
               const result = await OnlineChessAPI.createGame()

@@ -103,7 +103,7 @@ class OnlineChessAPI extends LocalChessAPI {
     const gameData = snapshot.val()
     const currentUser = auth.currentUser.uid
     
-    // Allow host to rejoin their own game
+    // Allow host to rejoin their own game (even with new user ID)
     if (gameData.hostPlayer === currentUser || joinAsPlayer === 'host') {
       const api = new OnlineChessAPI(gameCode)
       api.isHost = true
@@ -120,16 +120,25 @@ class OnlineChessAPI extends LocalChessAPI {
       api.gameData = { ...gameData, hostLastActiveAt: new Date().toISOString() }
       api.lastMove = gameData.lastMove || null
       
-      // Update host's presence
-      await update(gameRef, {
+      // Update host's presence and user ID (in case it changed)
+      const updateData = {
         hostLastActiveAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
-      })
+      }
+      // Update hostPlayer if user ID changed (rejoining with new anonymous ID)
+      if (gameData.hostPlayer !== currentUser && joinAsPlayer === 'host') {
+        updateData.hostPlayer = currentUser
+        // Also update whitePlayer if it was the old host
+        if (gameData.whitePlayer === gameData.hostPlayer) {
+          updateData.whitePlayer = currentUser
+        }
+      }
+      await update(gameRef, updateData)
       
       return api
     }
     
-    // Allow guest to rejoin if they were already the guest
+    // Allow guest to rejoin if they were already the guest (even with new user ID)
     if (gameData.guestPlayer === currentUser || joinAsPlayer === 'guest') {
       const api = new OnlineChessAPI(gameCode)
       api.isHost = false
@@ -146,11 +155,20 @@ class OnlineChessAPI extends LocalChessAPI {
       api.gameData = { ...gameData, guestLastActiveAt: new Date().toISOString() }
       api.lastMove = gameData.lastMove || null
       
-      // Update guest's presence
-      await update(gameRef, {
+      // Update guest's presence and user ID (in case it changed)
+      const updateData = {
         guestLastActiveAt: new Date().toISOString(),
         lastActiveAt: new Date().toISOString(),
-      })
+      }
+      // Update guestPlayer if user ID changed (rejoining with new anonymous ID)
+      if (gameData.guestPlayer !== currentUser && joinAsPlayer === 'guest') {
+        updateData.guestPlayer = currentUser
+        // Also update whitePlayer if it was the old guest
+        if (gameData.whitePlayer === gameData.guestPlayer) {
+          updateData.whitePlayer = currentUser
+        }
+      }
+      await update(gameRef, updateData)
       
       return api
     }

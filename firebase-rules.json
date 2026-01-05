@@ -3,12 +3,7 @@
     "games": {
       "$gameId": {
         ".read": "auth != null",
-        ".write": "auth != null && (
-          !data.exists() || 
-          data.child('hostPlayer').val() == auth.uid || 
-          data.child('guestPlayer').val() == auth.uid ||
-          (!data.child('guestPlayer').exists() || data.child('guestPlayer').val() == null)
-        )"
+        ".write": "auth != null",
       }
     },
     "waitList": {
@@ -19,4 +14,3 @@
     }
   }
 }
-

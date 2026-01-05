@@ -22,6 +22,14 @@ const GameInfoPanel = ({
   onAcceptUndo
 }) => {
   const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] })
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Close menu when game ends
+  useEffect(() => {
+    if (gameState.gameOver) {
+      setMenuOpen(false)
+    }
+  }, [gameState.gameOver])
 
   // Track captured pieces by comparing current board with initial piece counts
   useEffect(() => {
@@ -227,7 +235,166 @@ const GameInfoPanel = ({
 
   return (
     <div className='w-full md:w-64 flex-shrink-0 max-w-full'>
-      <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-2 md:p-4 space-y-2 md:space-y-4 max-h-[min(calc(100vh-4rem),600px)] overflow-y-auto'>
+      <div className='bg-white rounded-lg shadow-lg border-2 border-gray-200 p-2 md:p-4 space-y-2 md:space-y-4 max-h-[min(calc(100vh-4rem),600px)] overflow-y-auto relative'>
+        {/* Three-dot menu button (top right corner) */}
+        {!gameState.gameOver && (onResign || onOfferDraw || onUndo || onRequestUndo || onAcceptDraw || onAcceptUndo) && (
+          <div className='absolute top-2 right-2 z-30'>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className='px-2 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-300 transition-colors flex items-center justify-center'
+            >
+              <svg className='w-4 h-4 md:w-5 md:h-5' fill='currentColor' viewBox='0 0 20 20'>
+                <path d='M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z' />
+              </svg>
+            </button>
+
+            {/* Dropdown menu */}
+            {menuOpen && (
+              <>
+                {/* Backdrop to close menu on outside click */}
+                <div
+                  className='fixed inset-0 z-10'
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div className='absolute z-20 mt-1 right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1'>
+                  {/* Undo Button (first in reversed order) */}
+                  {opponentType === 'ai' ? (
+                    onUndo && (
+                      <button
+                        onClick={() => {
+                          onUndo()
+                          setMenuOpen(false)
+                        }}
+                        disabled={!gameState.lastMove}
+                        className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-700'
+                      >
+                        Undo
+                      </button>
+                    )
+                  ) : isOnlineGame ? (
+                    <>
+                      {(() => {
+                        const shouldShowAccept = gameState.undoRequested &&
+                          gameState.undoRequestedBy &&
+                          gameState.currentUserId &&
+                          gameState.undoRequestedBy !== gameState.currentUserId &&
+                          onAcceptUndo
+                        if (gameState.undoRequested) {
+                          console.log('Undo requested state:', {
+                            undoRequested: gameState.undoRequested,
+                            undoRequestedBy: gameState.undoRequestedBy,
+                            currentUserId: gameState.currentUserId,
+                            shouldShowAccept,
+                            onAcceptUndo: !!onAcceptUndo
+                          })
+                        }
+                        return shouldShowAccept ? (
+                          <div className='space-y-1'>
+                            <div className='text-xs text-blue-700 bg-blue-50 p-2 mx-1 rounded'>Opponent requested undo</div>
+                            <button
+                              onClick={() => {
+                                console.log('Accept undo button clicked')
+                                onAcceptUndo()
+                                setMenuOpen(false)
+                              }}
+                              className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors text-gray-700'
+                            >
+                              Accept Undo
+                            </button>
+                          </div>
+                        ) : (
+                          onRequestUndo && !gameState.undoRequested && (
+                            <button
+                              onClick={() => {
+                                onRequestUndo()
+                                setMenuOpen(false)
+                              }}
+                              disabled={!gameState || !gameState.lastMove || (gameState.isMyTurn && gameState.moveHistory.length === 1)}
+                              className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-700'
+                            >
+                              Request Undo
+                            </button>
+                          )
+                        )
+                      })()}
+                    </>
+                  ) : (
+                    onUndo && (
+                      <button
+                        onClick={() => {
+                          onUndo()
+                          setMenuOpen(false)
+                        }}
+                        disabled={!gameState.lastMove}
+                        className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-700'
+                      >
+                        Undo
+                      </button>
+                    )
+                  )}
+
+                  {/* Draw Offer/Accept (second in reversed order) */}
+                  {isOnlineGame ? (
+                    <>
+                      {gameState.drawOffered && gameState.drawOfferedBy && gameState.currentUserId && gameState.drawOfferedBy !== gameState.currentUserId && onAcceptDraw ? (
+                        <div className='space-y-1'>
+                          <div className='text-xs text-yellow-700 bg-yellow-50 p-2 mx-1 rounded'>Opponent offered a draw</div>
+                          <button
+                            onClick={() => {
+                              onAcceptDraw()
+                              setMenuOpen(false)
+                            }}
+                            className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors text-gray-700'
+                          >
+                            Accept Draw
+                          </button>
+                        </div>
+                      ) : (
+                        onOfferDraw && !gameState.drawOffered && (
+                          <button
+                            onClick={() => {
+                              onOfferDraw()
+                              setMenuOpen(false)
+                            }}
+                            className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors text-gray-700'
+                          >
+                            Offer Draw
+                          </button>
+                        )
+                      )}
+                    </>
+                  ) : (
+                    onOfferDraw && (
+                      <button
+                        onClick={() => {
+                          onOfferDraw()
+                          setMenuOpen(false)
+                        }}
+                        className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors text-gray-700'
+                      >
+                        Draw
+                      </button>
+                    )
+                  )}
+
+                  {/* Resign Button (third in reversed order) */}
+                  {onResign && (
+                    <button
+                      onClick={() => {
+                        onResign()
+                        setMenuOpen(false)
+                      }}
+                      className='w-full px-3 md:px-4 py-1.5 md:py-2 text-left text-xs md:text-sm font-semibold hover:bg-gray-100 transition-colors text-red-600'
+                    >
+                      Resign
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Opponent Online Status (for online games) */}
         {isOnlineGame && opponentConnected && (
           <div className={`flex items-center justify-center gap-2 p-2 md:p-3 rounded-lg ${opponentOnline
@@ -286,125 +453,6 @@ const GameInfoPanel = ({
           >
             New Game
           </button>
-        )}
-
-        {/* Game Actions Menu (when game is active) */}
-        {!gameState.gameOver && (
-          <div className='space-y-2'>
-            <div className='text-xs md:text-sm font-semibold text-gray-700 mb-1'>Game Actions</div>
-            <div className='flex flex-col gap-1.5 md:gap-2'>
-              {/* Resign Button */}
-              {onResign && (
-                <button
-                  onClick={onResign}
-                  className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-red-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-red-700 transition-colors'
-                >
-                  Resign
-                </button>
-              )}
-
-              {/* Draw Offer/Accept */}
-              {isOnlineGame ? (
-                <>
-                  {gameState.drawOffered && gameState.drawOfferedBy && gameState.currentUserId && gameState.drawOfferedBy !== gameState.currentUserId && onAcceptDraw ? (
-                    <div className='space-y-1.5'>
-                      <div className='text-xs text-yellow-700 bg-yellow-50 p-2 rounded'>Opponent offered a draw</div>
-                      <button
-                        onClick={onAcceptDraw}
-                        className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-green-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-green-700 transition-colors'
-                      >
-                        Accept Draw
-                      </button>
-                    </div>
-                  ) : (
-                    onOfferDraw && !gameState.drawOffered && (
-                      <button
-                        onClick={onOfferDraw}
-                        className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-yellow-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-yellow-700 transition-colors'
-                      >
-                        Offer Draw
-                      </button>
-                    )
-                  )}
-                </>
-              ) : (
-                onOfferDraw && (
-                  <button
-                    onClick={onOfferDraw}
-                    className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-yellow-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-yellow-700 transition-colors'
-                  >
-                    Draw
-                  </button>
-                )
-              )}
-
-              {/* Undo Button */}
-              {opponentType === 'ai' ? (
-                onUndo && (
-                  <button
-                    onClick={onUndo}
-                    disabled={!gameState.lastMove}
-                    className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    Undo
-                  </button>
-                )
-              ) : isOnlineGame ? (
-                <>
-                  {(() => {
-                    const shouldShowAccept = gameState.undoRequested &&
-                      gameState.undoRequestedBy &&
-                      gameState.currentUserId &&
-                      gameState.undoRequestedBy !== gameState.currentUserId &&
-                      onAcceptUndo
-                    if (gameState.undoRequested) {
-                      console.log('Undo requested state:', {
-                        undoRequested: gameState.undoRequested,
-                        undoRequestedBy: gameState.undoRequestedBy,
-                        currentUserId: gameState.currentUserId,
-                        shouldShowAccept,
-                        onAcceptUndo: !!onAcceptUndo
-                      })
-                    }
-                    return shouldShowAccept ? (
-                      <div className='space-y-1.5'>
-                        <div className='text-xs text-blue-700 bg-blue-50 p-2 rounded'>Opponent requested undo</div>
-                        <button
-                          onClick={() => {
-                            console.log('Accept undo button clicked')
-                            onAcceptUndo()
-                          }}
-                          className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-green-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-green-700 transition-colors'
-                        >
-                          Accept Undo
-                        </button>
-                      </div>
-                    ) : (
-                      onRequestUndo && !gameState.undoRequested && (
-                        <button
-                          onClick={onRequestUndo}
-                          disabled={!gameState || !gameState.lastMove || (gameState.isMyTurn && gameState.moveHistory.length === 1)}
-                          className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                        >
-                          Request Undo
-                        </button>
-                      )
-                    )
-                  })()}
-                </>
-              ) : (
-                onUndo && (
-                  <button
-                    onClick={onUndo}
-                    disabled={!gameState.lastMove}
-                    className='w-full px-3 md:px-4 py-1.5 md:py-2 bg-gray-600 text-white rounded-lg text-xs md:text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    Undo
-                  </button>
-                )
-              )}
-            </div>
-          </div>
         )}
 
         {/* Captured Pieces */}
