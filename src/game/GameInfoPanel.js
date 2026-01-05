@@ -46,19 +46,19 @@ const GameInfoPanel = ({
     })
 
     // Calculate captured pieces
-    const newCaptured = { white: [], black: [] }
-      ;['white', 'black'].forEach(color => {
-        Object.keys(initialCounts[color]).forEach(type => {
-          const initialCount = initialCounts[color][type]
-          const currentCount = currentCounts[color][type] || 0
-          const capturedCount = initialCount - currentCount
-          if (capturedCount > 0) {
-            for (let i = 0; i < capturedCount; i++) {
-              newCaptured[color].push(type)
-            }
+    const newCaptured = { white: [], black: [] };
+    ['white', 'black'].forEach(color => {
+      Object.keys(initialCounts[color]).forEach(type => {
+        const initialCount = initialCounts[color][type]
+        const currentCount = currentCounts[color][type] || 0
+        const capturedCount = initialCount - currentCount
+        if (capturedCount > 0) {
+          for (let i = 0; i < capturedCount; i++) {
+            newCaptured[color].push(type)
           }
-        })
+        }
       })
+    })
 
     setCapturedPieces(newCaptured)
   }, [gameState?.board])
@@ -254,6 +254,19 @@ const GameInfoPanel = ({
               <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8.684 13.688l1.281-1.281m0 0l5.25-5.25m-5.25 5.25l-5.25 5.25M3.75 21.75h16.5a2.25 2.25 0 002.25-2.25V4.5a2.25 2.25 0 00-2.25-2.25H3.75A2.25 2.25 0 001.5 4.5v15.25a2.25 2.25 0 002.25 2.25z' />
             </svg>
             Share Game to Rejoin
+          </button>
+        )}
+
+        {/* invite friend button (when friend has not joined the game) */}
+        {isOnlineGame && !opponentConnected && !gameState.gameOver && onShareGame && (
+          <button
+            onClick={onShareGame}
+            className='w-full px-3 md:px-4 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg text-sm md:text-base font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2'
+          >
+            <svg className='w-4 h-4 md:w-5 md:h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
+            </svg>
+            Invite Friend
           </button>
         )}
 

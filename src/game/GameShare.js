@@ -1,14 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const GameShare = ({ gameCode, shareableLink, onClose }) => {
-  const [copied, setCopied] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(null)
+  const [copiedLink, setCopiedLink] = useState(null)
 
-  const copyToClipboard = (text) => {
+  const copyCodeToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopiedCode(true)
+      setTimeout(() => setCopiedCode(false), 2000)
     })
   }
+  const copyLinkToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    })
+  }
+
+  // Reset copied state after 2 seconds
+  useEffect(() => {
+    let timeoutId = null
+    if (copiedCode) {
+      timeoutId = setTimeout(() => {
+        setCopiedCode(false)
+      }, 2000)
+    }
+    return () => clearTimeout(timeoutId)
+  }, [copiedCode, copiedLink])
+
+  useEffect(() => {
+    let timeoutId = null
+    if (copiedLink) {
+      timeoutId = setTimeout(() => {
+        setCopiedLink(false)
+      }, 2000)
+    }
+    return () => clearTimeout(timeoutId)
+  }, [copiedLink])
 
   return (
     <div className='fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
@@ -22,7 +50,7 @@ const GameShare = ({ gameCode, shareableLink, onClose }) => {
           <h2 className='text-3xl font-bold text-gray-800 mb-2'>Share Game</h2>
           <p className='text-gray-600 text-sm'>Share with your friend to start playing</p>
         </div>
-        
+
         <div className='mb-6'>
           <label className='block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2'>
             <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -38,14 +66,13 @@ const GameShare = ({ gameCode, shareableLink, onClose }) => {
               className='flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-mono text-xl text-center bg-gray-50 font-bold tracking-widest'
             />
             <button
-              onClick={() => copyToClipboard(gameCode)}
-              className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${
-                copied
-                  ? 'bg-green-600 text-white'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              onClick={() => copyCodeToClipboard(gameCode)}
+              className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${copiedCode
+                ? 'bg-green-600 text-white'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
             >
-              {copied ? (
+              {copiedCode ? (
                 <>
                   <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
@@ -79,14 +106,13 @@ const GameShare = ({ gameCode, shareableLink, onClose }) => {
               className='flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-sm bg-gray-50'
             />
             <button
-              onClick={() => copyToClipboard(shareableLink)}
-              className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${
-                copied
-                  ? 'bg-green-600 text-white'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              onClick={() => copyLinkToClipboard(shareableLink)}
+              className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 ${copiedLink
+                ? 'bg-green-600 text-white'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
             >
-              {copied ? (
+              {copiedLink ? (
                 <>
                   <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />

@@ -293,28 +293,13 @@ const GameContainer = () => {
                   ? gameState.turn
                   : config.opponent === 'local'
                     ? 'w'
-                    : config.opponent === 'ai'
-                      ? gameState.playingAsColor
-                      : gameState.playingAsColor}
+                    : gameState.playingAsColor}
               isAITurn={config.opponent === 'ai' && gameState.isAITurn}
               isThinking={config.opponent === 'ai' && gameState.isThinking}
               isOnlineGame={config.opponent === 'online_friend'}
               isMyTurn={gameState.isMyTurn}
               opponentConnected={gameState.opponentConnected}
             />
-            {config.opponent === 'online_friend' && chessAPI && !gameState.gameOver && !gameState.opponentConnected && (
-              <div className='text-center'>
-                <button
-                  onClick={() => {
-                    shareOpenedManually.current = false
-                    setShowShare(true)
-                  }}
-                  className='px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors'
-                >
-                  Share Game
-                </button>
-              </div>
-            )}
           </div>
 
           <GameInfoPanel
