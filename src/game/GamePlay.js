@@ -66,23 +66,13 @@ const GamePlay = ({
 
 
   return (
-    <div className='w-full max-w-full mx-auto p-1 md:p-4 layered items-center justify-items-center flex-shrink-0'>
-      <section className='aspect-square grid grid-rows-[repeat(8,_1fr)] grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200 w-full max-w-[min(calc(100vh-10rem),calc(100vw-0.5rem),600px)] md:max-w-[min(calc(100vh-8rem),calc(100vw-20rem),600px)]'>
+    <div className='w-full max-w-full mx-auto p-1 md:p-4 layered items-stretch justify-items-center'>
+      <section className='aspect-square rounded-lg overflow-hidden grid grid-rows-[repeat(8,_1fr)] grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200 w-full md:max-w-initial max-w-[min(calc(100vh-10rem),calc(100vw-0.5rem),1000px)] md:max-h-[min(calc(100vh-8rem),calc(100vw-20rem))]'>
         {boardPerspective === 'w' ? BoardSquares : BoardSquares.reverse()}
       </section>
 
       {promotionHold ? <PromotionPicker pick={selectPromotion} cancel={cancelPromotion} color={colorKeys[gameState.turn]} /> : null}
       
-      {isThinking ? (
-        <div className='mt-4 flex items-center justify-center gap-2 text-lg font-semibold text-neutral-700'>
-          <div className='flex gap-1'>
-            <div className='h-2 w-2 rounded-full bg-neutral-400 thinking-dot'></div>
-            <div className='h-2 w-2 rounded-full bg-neutral-400 thinking-dot'></div>
-            <div className='h-2 w-2 rounded-full bg-neutral-400 thinking-dot'></div>
-          </div>
-          <span>AI is thinking...</span>
-        </div>
-      ) : null}
     </div>
   )
 }
