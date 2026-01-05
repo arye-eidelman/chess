@@ -24,14 +24,21 @@ class OnlineChessAPI extends LocalChessAPI {
 
   // Create a new game and return the game code
   static async createGame() {
-    // Wait for auth to be ready
+    // Wait for auth to be ready - ensure we have an authenticated user
     if (!auth.currentUser) {
       await new Promise((resolve) => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
-          unsubscribe()
-          resolve()
+          if (user) {
+            unsubscribe()
+            resolve()
+          }
         })
       })
+    }
+    
+    // Double-check that we have an authenticated user before proceeding
+    if (!auth.currentUser) {
+      throw new Error('Authentication required. Please refresh the page and try again.')
     }
 
     const game = new Chess()
@@ -68,15 +75,22 @@ class OnlineChessAPI extends LocalChessAPI {
   }
 
   // Join an existing game by code
-  static async joinGame(gameCode) {
-    // Wait for auth to be ready
+  static async joinGame(gameCode, joinAsPlayer = null) {
+    // Wait for auth to be ready - ensure we have an authenticated user
     if (!auth.currentUser) {
       await new Promise((resolve) => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
-          unsubscribe()
-          resolve()
+          if (user) {
+            unsubscribe()
+            resolve()
+          }
         })
       })
+    }
+    
+    // Double-check that we have an authenticated user before proceeding
+    if (!auth.currentUser) {
+      throw new Error('Authentication required. Please refresh the page and try again.')
     }
 
     const gameRef = ref(db, `games/${gameCode}`)
@@ -90,7 +104,7 @@ class OnlineChessAPI extends LocalChessAPI {
     const currentUser = auth.currentUser.uid
     
     // Allow host to rejoin their own game
-    if (gameData.hostPlayer === currentUser) {
+    if (gameData.hostPlayer === currentUser || joinAsPlayer === 'host') {
       const api = new OnlineChessAPI(gameCode)
       api.isHost = true
       const game = new Chess()
@@ -116,7 +130,7 @@ class OnlineChessAPI extends LocalChessAPI {
     }
     
     // Allow guest to rejoin if they were already the guest
-    if (gameData.guestPlayer === currentUser) {
+    if (gameData.guestPlayer === currentUser || joinAsPlayer === 'guest') {
       const api = new OnlineChessAPI(gameCode)
       api.isHost = false
       const game = new Chess()
@@ -384,7 +398,7 @@ class OnlineChessAPI extends LocalChessAPI {
 
   getShareableLink() {
     if (!this.gameId) return null
-    return `${window.location.origin}${window.location.pathname}?game=${this.gameId}`
+    return `${window.location.origin}${window.location.pathname}?game=${this.gameId}&joinAs=${this.isHost ? 'guest' : 'host'}`
   }
 
   // Resign the game
@@ -471,14 +485,22 @@ class OnlineChessAPI extends LocalChessAPI {
   // Accept undo request (for online games)
   async acceptUndo() {
     try {
-      // Wait for auth to be ready
+      // Wait for auth to be ready - ensure we have an authenticated user
       if (!auth.currentUser) {
         await new Promise((resolve) => {
           const unsubscribe = auth.onAuthStateChanged((user) => {
-            unsubscribe()
-            resolve()
+            if (user) {
+              unsubscribe()
+              resolve()
+            }
           })
         })
+      }
+      
+      // Double-check that we have an authenticated user before proceeding
+      if (!auth.currentUser) {
+        console.error('acceptUndo: No authenticated user')
+        return
       }
       
       if (!this.gameId) {
