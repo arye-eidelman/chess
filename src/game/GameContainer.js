@@ -136,7 +136,7 @@ const GameContainer = () => {
             if (isUrlJoin) {
               // URL join failed - reset config to show setup screen (user can try again)
               setConfig({ opponent: 'online_friend' })
-            } else if (!showJoin) {
+            } else {
               // Manual join attempt that failed - show join dialog with error
               // Only if join dialog isn't already showing
               setShowJoin(true)

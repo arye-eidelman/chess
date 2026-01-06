@@ -34,7 +34,7 @@ const GamePlay = ({
           renderPiece = gameState.board[fromPosition.y][fromPosition.x]
         }
 
-        const isLastMove = gameState.lastMove && 
+        const isLastMove = gameState.lastMove &&
           (gameState.lastMove.from === position || gameState.lastMove.to === position)
 
         return (
@@ -67,12 +67,13 @@ const GamePlay = ({
 
   return (
     <div className='w-full max-w-full mx-auto p-1 md:p-4 layered items-stretch justify-items-center'>
-      <section className='aspect-square rounded-lg overflow-hidden grid grid-rows-[repeat(8,_1fr)] grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200 w-full md:max-w-initial max-w-[min(calc(100vh-10rem),calc(100vw-0.5rem),1000px)] md:max-h-[min(calc(100vh-8rem),calc(100vw-20rem))]'>
+      <section className='aspect-square rounded-lg overflow-hidden grid grid-rows-[repeat(8,_1fr)]
+      grid-cols-[repeat(8,_1fr)] border-4 border-neutral-200 w-full md:max-w-initial shadow-lg
+      max-w-[min(calc(100vh-10rem),calc(100vw-0.5rem),1000px)]
+      md:max-h-[min(calc(100vh-8rem),calc(100vw-20rem))]'>
         {boardPerspective === 'w' ? BoardSquares : BoardSquares.reverse()}
       </section>
-
       {promotionHold ? <PromotionPicker pick={selectPromotion} cancel={cancelPromotion} color={colorKeys[gameState.turn]} /> : null}
-      
     </div>
   )
 }
